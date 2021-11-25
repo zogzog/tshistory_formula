@@ -248,7 +248,7 @@ def test_failing_kw(engine, tsh):
     with pytest.raises(TypeError) as err:
         typecheck(lisp.parse(expr), i.env)
 
-    assert err.value.args[0] == "keyword `prune` = 'toto' not of typing.Union[int, NoneType]"
+    assert err.value.args[0] == "keyword `prune` = 'toto' not of typing.Optional[int]"
 
 
 def test_kw_subexpr(engine, tsh):

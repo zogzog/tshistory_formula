@@ -300,6 +300,11 @@ def normalize_union_types(obj):
 def typename(typespec):
     if isinstance(typespec, type):
         return extract_type_name(typespec.__name__)
+    strtype = str(typespec)
+    # as of py39 Optional is first class and no longer devolves
+    # into Union[<type>, NoneType]
+    if 'Optional' in strtype:
+        return typename(typespec.__args__[0])
     # if a Union over NoneType, remove the later
     typespec = typespec.copy_with(
         tuple(
@@ -310,7 +315,6 @@ def typename(typespec):
     )
     if len(typespec.__args__) == 1:
         return typename(typespec.__args__[0])
-    strtype = str(typespec)
     if 'Union' in strtype:
         return normalize_union_types(typespec)
     if strtype.startswith('typing.'):
