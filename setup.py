@@ -18,7 +18,10 @@ setup(name='tshistory_formula',
       zip_safe=False,
       install_requires=[
           'tshistory',
-          'psyl'
+          'psyl',
+          'dash==1.13.4',
+          'dash-html-components==1.0.3',
+          'decorator'
       ],
       package_data={'tshistory_formula': [
           'schema.sql'
