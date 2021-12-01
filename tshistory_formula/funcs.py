@@ -29,11 +29,6 @@ from tshistory_formula.helper import (
 from tshistory_formula.interpreter import Interpreter
 
 
-@func('tuple')
-def make_list(*a: object) -> Tuple[object]:
-    return a
-
-
 @func('options')
 def options(series: pd.Series,
             fill: Union[str, Number, NONETYPE]=None,
