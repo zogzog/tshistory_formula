@@ -366,11 +366,11 @@ class timeseries(basets):
             ]
             if len(mins):
                 mindate = min(mins)
-                for name, hist in histmap.items():
+                for sname, hist in histmap.items():
                     if mindate not in hist:
                         ts_mindate = self.get(
                             cn,
-                            name,
+                            sname,
                             revision_date=mindate,
                             from_value_date=from_value_date,
                             to_value_date=to_value_date,
@@ -379,7 +379,7 @@ class timeseries(basets):
                             # the history must be ordered by key
                             base = {mindate: ts_mindate}
                             base.update(hist)
-                            histmap[name] = base
+                            histmap[sname] = base
 
         i = interpreter.HistoryInterpreter(
             name, cn, self, {
