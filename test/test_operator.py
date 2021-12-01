@@ -311,13 +311,6 @@ def test_scalar_div(engine, tsh):
 
 
 def test_priority(engine, tsh):
-    tsh.register_formula(
-        engine,
-        'test_prio',
-        '(priority (series "c" #:prune 1) (series "b") (series "a"))',
-        False
-    )
-
     a = pd.Series(
         [1, 2, 3],
         index=pd.date_range(dt(2019, 1, 1), periods=3, freq='D')
@@ -334,6 +327,12 @@ def test_priority(engine, tsh):
     tsh.update(engine, a, 'a', 'Babar', insertion_date=utcdt(2020, 1, 1))
     tsh.update(engine, b, 'b', 'Celeste', insertion_date=utcdt(2019, 12, 1))
     tsh.update(engine, c, 'c', 'Arthur', insertion_date=utcdt(2020, 2, 1))
+
+    tsh.register_formula(
+        engine,
+        'test_prio',
+        '(priority (series "c" #:prune 1) (series "b") (series "a"))'
+    )
 
     prio = tsh.get(engine, 'test_prio')
 
@@ -377,18 +376,18 @@ def test_priority(engine, tsh):
 
     h = tsh.history(engine, 'test_prio')
     assert_hist("""
-insertion_date             value_date
-2019-12-01 00:00:00+00:00  2019-01-02     10.0
-                           2019-01-03     20.0
-                           2019-01-04     30.0
-2020-01-01 00:00:00+00:00  2019-01-01      1.0
-                           2019-01-02     10.0
-                           2019-01-03     20.0
-                           2019-01-04     30.0
-2020-02-01 00:00:00+00:00  2019-01-01      1.0
-                           2019-01-02     10.0
-                           2019-01-03    100.0
-                           2019-01-04    200.0
+insertion_date             value_date               
+2019-12-01 00:00:00+00:00  2019-01-02 00:00:00+00:00     10.0
+                           2019-01-03 00:00:00+00:00     20.0
+                           2019-01-04 00:00:00+00:00     30.0
+2020-01-01 00:00:00+00:00  2019-01-01 00:00:00            1.0
+                           2019-01-02 00:00:00           10.0
+                           2019-01-03 00:00:00           20.0
+                           2019-01-04 00:00:00           30.0
+2020-02-01 00:00:00+00:00  2019-01-01 00:00:00            1.0
+                           2019-01-02 00:00:00           10.0
+                           2019-01-03 00:00:00          100.0
+                           2019-01-04 00:00:00          200.0
 """, h)
 
 

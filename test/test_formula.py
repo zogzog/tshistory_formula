@@ -514,13 +514,6 @@ def test_error(engine, tsh):
 
 
 def test_history(engine, tsh):
-    tsh.register_formula(
-        engine,
-        'h-addition',
-        '(add (series "ha") (series "hb"))',
-        False
-    )
-
     for day in (1, 2, 3):
         idate = utcdt(2019, 1, day)
         for name in 'ab':
@@ -530,6 +523,12 @@ def test_history(engine, tsh):
             )
             tsh.update(engine, ts, 'h' + name, 'Babar',
                        insertion_date=idate)
+
+    tsh.register_formula(
+        engine,
+        'h-addition',
+        '(add (series "ha") (series "hb"))'
+    )
 
     h = tsh.history(engine, 'h-addition')
     assert_hist("""
@@ -564,13 +563,6 @@ insertion_date             value_date
 2019-01-02 00:00:00+00:00  2018-01-02    4.0
 """, h)
 
-    # let's add a priority
-    tsh.register_formula(
-        engine,
-        'h-priority',
-        '(priority (series "hz") (series "h-addition"))',
-        False
-    )
     for day in (1, 2, 3):
         idate = utcdt(2019, 1, day)
         ts = pd.Series(
@@ -579,6 +571,13 @@ insertion_date             value_date
         )
         tsh.update(engine, ts, 'hz', 'Babar',
                    insertion_date=idate)
+
+    # let's add a priority
+    tsh.register_formula(
+        engine,
+        'h-priority',
+        '(priority (series "hz") (series "h-addition"))'
+    )
 
     h = tsh.history(engine, 'h-priority')
     assert_hist("""
@@ -837,13 +836,6 @@ def test_ifunc(engine, tsh):
             stree[1]: stree
         }
 
-    tsh.register_formula(
-        engine,
-        'shifting',
-        '(+ 0 (shifted "shiftme" #:days -1))',
-        False
-    )
-
     ts = pd.Series(
         [1, 2, 3, 4, 5],
         index=pd.date_range(dt(2019, 1, 1), periods=5, freq='D')
@@ -851,6 +843,12 @@ def test_ifunc(engine, tsh):
     tsh.update(
         engine, ts, 'shiftme', 'Babar',
         insertion_date=utcdt(2019, 1, 1)
+    )
+
+    tsh.register_formula(
+        engine,
+        'shifting',
+        '(+ 0 (shifted "shiftme" #:days -1))'
     )
 
     ts = tsh.get(engine, 'shifting')
