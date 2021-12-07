@@ -2,6 +2,7 @@ from datetime import datetime as dt
 import json
 
 import pandas as pd
+import pytest
 import webtest
 
 from tshistory import util
@@ -13,7 +14,7 @@ from tshistory.testutil import (
 )
 
 
-def test_series_formula(client, engine):
+def test_series_formula(client):
     series = genserie(utcdt(2020, 1, 1), 'D', 3)
     res = client.patch('/series/state', params={
         'name': 'test-formula',
@@ -97,7 +98,7 @@ def test_series_formula(client, engine):
     assert res.json == {'new-formula': ['test-formula']}
 
 
-def test_group_formula(client, engine):
+def test_group_formula(client):
     df = gengroup(
         n_scenarios=3,
         from_date=dt(2021, 1, 1),
@@ -136,7 +137,7 @@ def test_group_formula(client, engine):
     assert df2.equals(df * 2)
 
 
-def test_bound_formula(client, engine):
+def test_bound_formula(client):
     ts = genserie(pd.Timestamp('2021-1-1'), 'H', 3)
     res = client.patch('/series/state', {
         'name': 'a-series',
@@ -214,3 +215,207 @@ def test_bound_formula(client, engine):
               a    b    c
 2021-01-01  2.0  3.0  4.0
 """, df2)
+
+
+def test_formula(tsx, engine, tsh):
+    tsh.update(
+        engine,
+        pd.Series(
+            [1, 2, 3],
+            index=pd.date_range(
+                pd.Timestamp('2020-1-1', tz='UTC'),
+                freq='D',
+                periods=3
+            )
+        ),
+        'in-a-formula',
+        'Babar'
+    )
+
+    with pytest.raises(SyntaxError):
+        tsx.register_formula(
+            'new-formula',
+            '(+ 3'
+        )
+
+    with pytest.raises(ValueError):
+        tsx.register_formula(
+            'new-formula',
+            '(+ 3 (series "lol"))'
+        )
+
+    tsx.register_formula(
+        'new-formula',
+        '(+ 3 (series "lol"))',
+        reject_unknown=False
+    )
+
+
+    with pytest.raises(AssertionError):
+        tsx.register_formula(
+            'new-formula',
+            '(+ 3 (series "in-a-formula"))',
+        )
+
+
+    tsx.register_formula(
+        'new-formula',
+        '(+ 3 (series "in-a-formula"))',
+        update=True
+    )
+
+    series = tsx.get('new-formula')
+    assert_df("""
+2020-01-01 00:00:00+00:00    4.0
+2020-01-02 00:00:00+00:00    5.0
+2020-01-03 00:00:00+00:00    6.0
+""", series)
+
+    assert tsx.formula('new-formula') == '(+ 3 (series "in-a-formula"))'
+    assert tsx.formula('lol') is None
+
+    tsx.register_formula(
+        '2-levels',
+        '(+ 5 (series "new-formula"))'
+    )
+    assert tsx.formula('2-levels', True) == '(+ 5 (+ 3 (series "in-a-formula")))'
+
+    assert tsx.formula_components('2-levels', True) == (
+        {'2-levels': [{'new-formula': ['in-a-formula']}]}
+    )
+
+
+def test_group_formula(tsx):
+    df = gengroup(
+        n_scenarios=3,
+        from_date=dt(2021, 1, 1),
+        length=5,
+        freq='D',
+        seed=2.
+    )
+    df.columns = ['a', 'b', 'c']
+
+    tsx.group_replace('for_a_group_formula', df, 'Babar')
+
+    tsx.register_group_formula(
+        'test_group_formula',
+        '(group "for_a_group_formula")'
+    )
+    assert tsx.group_exists('test_group_formula')
+
+    df2 = tsx.group_get('test_group_formula')
+    assert df2.equals(df)
+
+    assert tsx.group_formula('test_group_formula') == '(group "for_a_group_formula")'
+    tsx.update_group_metadata('test_group_formula', {'foo': 'bar'})
+    assert tsx.group_metadata('test_group_formula') == {'foo': 'bar'}
+
+    tsx.group_delete('test_group_formula')
+    assert not tsx.group_exists('test_group_formula')
+
+
+def test_bound_formula(tsx):
+    temp = pd.Series(
+        [12, 13, 14],
+        index=pd.date_range(utcdt(2021, 1, 1), freq='D', periods=3)
+    )
+    wind = pd.Series(
+        [.1, .1, .1],
+        index=pd.date_range(utcdt(2021, 1, 1), freq='D', periods=3)
+    )
+
+    tsx.update('base-temp', temp, 'Babar')
+    tsx.update('base-wind', wind, 'Celeste')
+
+    tsx.register_formula(
+        'hijacked',
+        '(add (series "base-temp") (series "base-wind"))'
+    )
+
+    df1 = gengroup(
+        n_scenarios=2,
+        from_date=dt(2021, 1, 1),
+        length=3,
+        freq='D',
+        seed=0
+    )
+    tsx.group_replace(
+        'temp-ens',
+        df1,
+        'Arthur'
+    )
+    assert_df("""
+            0  1
+2021-01-01  0  1
+2021-01-02  1  2
+2021-01-03  2  3
+""", df1)
+
+    df2 = gengroup(
+        n_scenarios=2,
+        from_date=dt(2021, 1, 1),
+        length=3,
+        freq='D',
+        seed=1
+    )
+    tsx.group_replace(
+        'wind-ens',
+        df2,
+        'Zéphir'
+    )
+    assert_df("""
+            0  1
+2021-01-01  1  2
+2021-01-02  2  3
+2021-01-03  3  4
+""", df2)
+
+    binding = pd.DataFrame(
+        [
+            ['base-temp', 'temp-ens', 'meteo'],
+            ['base-wind', 'wind-ens', 'meteo'],
+        ],
+        columns=('series', 'group', 'family')
+    )
+
+    tsx.register_formula_bindings(
+        'hijacking',
+        'hijacked',
+        binding
+    )
+
+    b = tsx.bindings_for('hijacking')
+    for attr in ('series', 'group', 'family'):
+        assert b[1][attr].equals(binding[attr])
+
+    ts = tsx.get('hijacked')
+    assert_df("""
+2021-01-01 00:00:00+00:00    12.1
+2021-01-02 00:00:00+00:00    13.1
+2021-01-03 00:00:00+00:00    14.1
+""", ts)
+
+    df = tsx.group_get('hijacking')
+    assert_df("""
+              0    1
+2021-01-01  1.0  3.0
+2021-01-02  3.0  5.0
+2021-01-03  5.0  7.0
+""", df)
+
+    assert tsx.group_exists('hijacking')
+    assert tsx.group_type('hijacking') == 'bound'
+
+    cat = list(tsx.group_catalog().values())[0]
+    assert ('hijacking', 'bound') in cat
+
+    assert tsx.group_metadata('hijacking') == {}
+    tsx.update_group_metadata('hijacking', {'foo': 'bar'})
+    assert tsx.group_metadata('hijacking') == {'foo': 'bar'}
+
+    tsx.group_delete('hijacking')
+    assert not tsx.group_exists('hijacking')
+
+    assert tsx.group_metadata('hijacking') is None
+    with pytest.raises(AssertionError):
+        tsx.update_group_metadata('hijacking', {'foo': 'bar'})

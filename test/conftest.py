@@ -7,10 +7,12 @@ from pytest_sa_pg import db
 from click.testing import CliRunner
 
 from tshistory import cli as command, api
+from tshistory.testutil import make_tsx
 from tshistory.schema import tsschema
+
 from tshistory_formula.schema import formula_schema
 from tshistory_formula.tsio import timeseries
-
+from tshistory_formula import http
 
 DATADIR = Path(__file__).parent / 'data'
 
@@ -105,3 +107,17 @@ def client(engine):
         )
     )
     yield WebTester(wsgi)
+
+
+def _initschema(engine):
+    tsschema('tsh').create(engine)
+    formula_schema('tsh').create(engine)
+
+
+tsx = make_tsx(
+    'http://test.me',
+    _initschema,
+    timeseries,
+    http.formula_httpapi,
+    http.FormulaClient
+)

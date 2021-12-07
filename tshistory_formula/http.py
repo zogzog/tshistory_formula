@@ -1,4 +1,5 @@
 import pandas as pd
+import requests
 
 from flask_restx import (
     inputs,
@@ -6,6 +7,7 @@ from flask_restx import (
     reqparse
 )
 
+from tshistory_client.api import Client, unwraperror
 from tshistory_rest.util import onerror
 from tshistory_rest.blueprint import httpapi
 
@@ -230,3 +232,128 @@ class formula_httpapi(httpapi):
                     )
 
                     return '', 200
+
+
+class FormulaClient(Client):
+
+    @unwraperror
+    def formula(self, name, expanded=False):
+        res = requests.get(
+            f'{self.uri}/series/formula', params={
+                'name': name,
+                'expanded': expanded
+            }
+        )
+        if res.status_code == 200:
+            return res.json()
+        if res.status_code == 418:
+            return res
+        return  # None is the reasonable api answer
+
+    @unwraperror
+    def formula_components(self, name, expanded=False):
+        res = requests.get(
+            f'{self.uri}/series/formula_components', params={
+                'name': name,
+                'expanded': expanded
+            }
+        )
+        if res.status_code == 200:
+            return res.json()
+        if res.status_code == 418:
+            return res
+        return  # None is the reasonable api answer
+
+    @unwraperror
+    def register_formula(self, name,
+                         formula,
+                         reject_unknown=True,
+                         update=False):
+        res = requests.patch(
+            f'{self.uri}/series/formula', data={
+                'name': name,
+                'text': formula,
+                'reject_unknown': reject_unknown,
+                'force_update': update
+            }
+        )
+        if res.status_code == 400:
+            raise SyntaxError(res.json()['message'])
+        elif res.status_code == 409:
+            msg = res.json()['message']
+            if 'unknown' in msg:
+                raise ValueError(msg)
+            elif 'exists' in msg:
+                raise AssertionError(msg)
+
+        if res.status_code in (200, 204):
+            return
+
+        return res
+
+    @unwraperror
+    def group_formula(self, name, expanded=False):
+        res = requests.get(
+            f'{self.uri}/group/formula', params={
+                'name': name,
+                'expanded': expanded
+            }
+        )
+        if res.status_code == 200:
+            return res.json()
+        if res.status_code == 418:
+            return res
+        if res.status_code == 404:
+            return
+        return res
+
+    @unwraperror
+    def register_group_formula(self, name, formula):
+        res = requests.put(
+            f'{self.uri}/group/formula', data={
+                'name': name,
+                'text': formula
+            }
+        )
+        if res.status_code == 400:
+            raise SyntaxError(res.json()['message'])
+        elif res.status_code == 409:
+            msg = res.json()['message']
+            if 'unknown' in msg:
+                raise ValueError(msg)
+            elif 'exists' in msg:
+                raise AssertionError(msg)
+            else:
+                raise TypeError(msg)
+
+        if res.status_code in (200, 204):
+            return
+
+        return res
+
+    @unwraperror
+    def register_formula_bindings(self, name, formulaname, bindings):
+        res = requests.put(
+            f'{self.uri}/group/boundformula', data={
+                'name': name,
+                'formulaname': formulaname,
+                'bindings': bindings.to_json(orient='records')
+            }
+        )
+        return res
+
+    @unwraperror
+    def bindings_for(self, name):
+        res = requests.get(
+            f'{self.uri}/group/boundformula', params={
+                'name': name
+            }
+        )
+        if res.status_code == 200:
+            name, bindings = res.json()
+            return name, pd.DataFrame(bindings)
+
+        if res.status_code == 404:
+            return None
+
+        return res
