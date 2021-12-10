@@ -72,7 +72,7 @@ def datadir():
     return DATADIR
 
 
-# support for the http (tshistory_rest) extensions
+# support for the http extensions
 DBURI = 'postgresql://localhost:5433/postgres'
 
 def make_app(tsa):

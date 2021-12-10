@@ -7,9 +7,9 @@ from flask_restx import (
     reqparse
 )
 
-from tshistory_client.api import Client, unwraperror
-from tshistory_rest.util import onerror
-from tshistory_rest.blueprint import httpapi
+from tshistory.http.client import Client, unwraperror
+from tshistory.http.util import onerror
+from tshistory.http.server import httpapi
 
 
 base = reqparse.RequestParser()
