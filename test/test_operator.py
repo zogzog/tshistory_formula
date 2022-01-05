@@ -1488,3 +1488,18 @@ insertion_date             value_date
     tsh.get(engine, 'constant-3', revision_date=dt(2020, 2, 1))
     tsh.get(engine, 'constant-3', from_value_date=dt(2020, 2, 1))
     tsh.get(engine, 'constant-3', to_value_date=dt(2020, 2, 1))
+
+
+def test_constant_today_timetravel(engine, tsh):
+    tsh.register_formula(
+        engine,
+        'constant-with-today',
+        '(constant 1. (date "2021-1-1") (today) "D" (date "2020-2-1"))'
+    )
+
+    with pytest.raises(TypeError):
+        tsh.get(
+            engine,
+            'constant-with-today',
+            revision_date=pd.Timestamp('2021-1-3', tz='CET')
+        )
