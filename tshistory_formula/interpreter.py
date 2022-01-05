@@ -243,6 +243,8 @@ class BridgeInterpreter(Interpreter):
     """Intepreter that creates a bridge between the group world and the
     series world
     """
+    __slots__ = ('env', 'cn', 'tsh', 'getargs', 'histories', 'vcache', 'auto',
+                 'groups', 'binding')
 
     def __init__(self, *args, groups, binding):
         super().__init__(*args)
@@ -250,13 +252,14 @@ class BridgeInterpreter(Interpreter):
         self.binding = binding
 
     def get(self, seriesname, _getargs):
-        mask_binding = self.binding['series'] == seriesname
-        if sum(mask_binding) == 0:
+        bound_series = self.binding['series'] == seriesname
+        seriescount = sum(bound_series)
+        if seriescount == 0:
             return super().get(seriesname, _getargs)
-        elif sum(mask_binding) > 1:
+        elif seriescount > 1:
             raise Exception
 
-        family = self.binding.loc[mask_binding, 'family'].iloc[0]
+        family = self.binding.loc[bound_series, 'family'].iloc[0]
         combination = self.env['__combination__']
         return self.groups[family][seriesname][combination[family]]
 
