@@ -74,10 +74,12 @@ class Interpreter:
         if naive:
             assert tz is None, f'date cannot be naive and have a tz'
         tz = pytz.timezone(tz or 'utc')
-
         key = ('today', naive, tz)
+
         val = self.getargs.get('revision_date')
         if val:
+            # we don't use the cache because revision_date may change
+            # during this interpreter life time (e.g. history calls)
             if naive:
                 val = val.replace(tzinfo=None)
             elif val.tzinfo is None:
