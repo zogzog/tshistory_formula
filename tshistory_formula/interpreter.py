@@ -76,8 +76,8 @@ class Interpreter:
         tz = pytz.timezone(tz or 'utc')
 
         key = ('today', naive, tz)
-        if self.getargs.get('revision_date'):
-            val = self.getargs['revision_date']
+        val = self.getargs.get('revision_date')
+        if val:
             if naive:
                 val = val.replace(tzinfo=None)
             elif val.tzinfo is None:
