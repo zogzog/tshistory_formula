@@ -1497,9 +1497,12 @@ def test_constant_today_timetravel(engine, tsh):
         '(constant 1. (date "2021-1-1") (today) "D" (date "2020-2-1"))'
     )
 
-    with pytest.raises(TypeError):
-        tsh.get(
-            engine,
-            'constant-with-today',
-            revision_date=pd.Timestamp('2021-1-3', tz='CET')
-        )
+    ts = tsh.get(
+        engine,
+        'constant-with-today',
+        revision_date=pd.Timestamp('2021-1-3', tz='CET')
+    )
+    assert_df("""
+2021-01-01 00:00:00+00:00    1.0
+2021-01-02 00:00:00+00:00    1.0
+""", ts)

@@ -82,6 +82,8 @@ class Interpreter:
                 val = val.replace(tzinfo=None)
             elif val.tzinfo is None:
                 val = pd.Timestamp(val, tz=tz)
+            else:
+                val = val.tz_convert(tz)
             self.vcache[key] = val
             return val
 
