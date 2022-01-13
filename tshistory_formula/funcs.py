@@ -582,7 +582,7 @@ def slice(series: pd.Series,
     if fromdate is None and todate is None:
         return series
 
-    tzaware = series.index.dtype.name == 'datetime64[ns, UTC]'
+    tzaware = tzaware_serie(series)
     if fromdate:
         fromdate = compatible_date(tzaware, fromdate)
     if todate:
