@@ -1,8 +1,22 @@
 import inspect
-
 from concurrent.futures import (
     Future
 )
+
+try:
+    from functools import cache
+except ImportError:
+    # before python 3.9
+    _CACHE = {}
+    def cache(func):
+        def wrapper(*a, **k):
+            val = _CACHE.get(a)
+            if val:
+                return val
+            _CACHE[a] = val = func(*a, **k)
+            return val
+        return wrapper
+
 
 from psyl.lisp import (
     buildargs,
@@ -12,7 +26,7 @@ from psyl.lisp import (
 from tshistory_formula.helper import ThreadPoolExecutor
 
 
-
+@cache
 def funcid(func):
     return hash(inspect.getsource(func))
 
