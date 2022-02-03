@@ -298,7 +298,8 @@ class timeseries(basets):
                 to_value_date=None,
                 diffmode=False,
                 _keep_nans=False,
-                _tree=None):
+                _tree=None,
+                **kw):
 
         if self.type(cn, name) != 'formula':
 
@@ -320,12 +321,13 @@ class timeseries(basets):
             # normal series ?
             hist = super().history(
                 cn, name,
-                from_insertion_date,
-                to_insertion_date,
-                from_value_date,
-                to_value_date,
-                diffmode,
-                _keep_nans
+                from_insertion_date=from_insertion_date,
+                to_insertion_date=to_insertion_date,
+                from_value_date=from_value_date,
+                to_value_date=to_value_date,
+                diffmode=diffmode,
+                _keep_nans=_keep_nans,
+                **kw
             )
 
             # alternative source ?
@@ -336,7 +338,8 @@ class timeseries(basets):
                     to_value_date=to_value_date,
                     from_insertion_date=from_insertion_date,
                     to_insertion_date=to_insertion_date,
-                    _keep_nans=_keep_nans
+                    _keep_nans=_keep_nans,
+                    **kw
                 )
             return hist
 
@@ -348,10 +351,11 @@ class timeseries(basets):
         histmap = {
             name: self.history(
                 cn, name,
-                from_insertion_date,
-                to_insertion_date,
-                from_value_date,
-                to_value_date
+                from_insertion_date=from_insertion_date,
+                to_insertion_date=to_insertion_date,
+                from_value_date=from_value_date,
+                to_value_date=to_value_date,
+                **kw
             ) or {}
             for name in series
         }
@@ -374,6 +378,7 @@ class timeseries(basets):
                             revision_date=mindate,
                             from_value_date=from_value_date,
                             to_value_date=to_value_date,
+                            **kw
                         )
                         if ts_mindate is not None and len(ts_mindate):
                             # the history must be ordered by key
@@ -398,11 +403,12 @@ class timeseries(basets):
                 chist = self.history(
                     cn,
                     None, # just mark that we won't work "by name" there
-                    from_insertion_date,
-                    to_insertion_date,
-                    from_value_date,
-                    to_value_date,
-                    _tree=callsite
+                    from_insertion_date=from_insertion_date,
+                    to_insertion_date=to_insertion_date,
+                    from_value_date=from_value_date,
+                    to_value_date=to_value_date,
+                    _tree=callsite,
+                    **kw
                 ) or {}
                 cname = helper.name_of_expr(callsite)
                 i.namecache[serialize(callsite)] = cname
@@ -428,7 +434,8 @@ class timeseries(basets):
                 name,
                 from_value_date=from_value_date,
                 to_value_date=to_value_date,
-                revision_date=firstidate - timedelta(seconds=1)
+                revision_date=firstidate - timedelta(seconds=1),
+                **kw
             )
             newh = {}
             for idate in idates:
@@ -442,12 +449,15 @@ class timeseries(basets):
 
     @tx
     def insertion_dates(self, cn, name,
-                        fromdate=None, todate=None):
+                        from_insertion_date=None,
+                        to_insertion_date=None,
+                        **kw):
         if self.type(cn, name) != 'formula':
             return super().insertion_dates(
                 cn, name,
-                fromdate=fromdate,
-                todate=todate
+                from_insertion_date=from_insertion_date,
+                to_insertion_date=to_insertion_date,
+                **kw
             )
 
         formula = self.formula(cn, name)
@@ -459,23 +469,25 @@ class timeseries(basets):
                 if self.othersources:
                     allrevs += self.othersources.insertion_dates(
                         name,
-                        fromdate,
-                        todate
+                        from_insertion_date=from_insertion_date,
+                        to_insertion_date=to_insertion_date,
+                        **kw
                     )
                 continue
             if self.formula(cn, name):
                 allrevs += self.insertion_dates(
                     cn, name,
-                    fromdate,
-                    todate
+                    from_insertion_date=from_insertion_date,
+                    to_insertion_date=to_insertion_date,
+                    **kw
                 )
             else:
                 allrevs += [
                     idate
                     for _id, idate in self._revisions(
                             cn, name,
-                            from_insertion_date=fromdate,
-                            to_insertion_date=todate
+                            from_insertion_date=from_insertion_date,
+                            to_insertion_date=to_insertion_date
                     )]
 
         # autotrophic operators
@@ -483,7 +495,11 @@ class timeseries(basets):
         for site in isites:
             fname = site[0]
             idates_func = IDATES[fname]
-            revs = idates_func(cn, self, site, fromdate, todate)
+            revs = idates_func(
+                cn, self, site,
+                from_insertion_date,
+                to_insertion_date
+            )
             if revs:
                 allrevs += revs
 
@@ -495,8 +511,8 @@ class timeseries(basets):
             hist = self.history(
                 cn,
                 None, # just mark that we won't work "by name" there
-                fromdate,
-                todate,
+                from_insertion_date,
+                to_insertion_date,
                 _tree=site
             )
             if hist:

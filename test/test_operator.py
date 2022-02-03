@@ -1463,9 +1463,11 @@ insertion_date             value_date
         pd.Timestamp('2020-02-01 00:00:00+0000', tz='UTC')
     ]
 
-    idates = tsh.insertion_dates(engine, 'constant-1', fromdate=utcdt(2020, 2, 2))
+    idates = tsh.insertion_dates(engine, 'constant-1',
+                                 from_insertion_date=utcdt(2020, 2, 2))
     assert idates == []
-    idates = tsh.insertion_dates(engine, 'constant-1', todate=utcdt(2019, 1, 1))
+    idates = tsh.insertion_dates(engine, 'constant-1',
+                                 to_insertion_date=utcdt(2019, 1, 1))
     assert idates == []
 
     # edge cases
