@@ -23,10 +23,8 @@ def engine(request):
     db.setup_local_pg_cluster(request, DATADIR, port)
     uri = 'postgresql://localhost:{}/postgres'.format(port)
     e = create_engine(uri)
-    tsch = tsschema()
-    tsch.create(e)
-    sch = formula_schema()
-    sch.create(e)
+    tsschema().create(e, reset=True)
+    formula_schema().create(e)
     return e
 
 
@@ -37,11 +35,10 @@ def tsh(request, engine):
 
 @pytest.fixture(scope='session')
 def tsa(engine):
-    tsschema('test-mapi').create(engine)
+    tsschema('test-mapi').create(engine, reset=True)
     formula_schema('test-mapi').create(engine)
-    tsschema('test-mapi-2').create(engine)
+    tsschema('test-mapi-2').create(engine, reset=True)
     formula_schema('test-mapi-2').create(engine)
-
     return api.timeseries(
         str(engine.url),
         namespace='test-mapi',
@@ -110,7 +107,7 @@ def client(engine):
 
 
 def _initschema(engine):
-    tsschema('tsh').create(engine)
+    tsschema('tsh').create(engine, reset=True)
     formula_schema('tsh').create(engine)
 
 
