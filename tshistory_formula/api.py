@@ -6,14 +6,14 @@ from psyl.lisp import parse
 from tshistory.util import extend
 from tshistory.api import (
     altsources,
-    dbtimeseries
+    mainsource
 )
 
 
 NONETYPE = type(None)
 
 
-@extend(dbtimeseries)
+@extend(mainsource)
 def register_formula(self,
                      name: str,
                      formula: str,
@@ -34,7 +34,7 @@ def register_formula(self,
     )
 
 
-@extend(dbtimeseries)
+@extend(mainsource)
 def formula(self,
             name: str,
             expanded: bool=False) -> Optional[str]:
@@ -59,7 +59,7 @@ def formula(self,
     return source.tsa.formula(name, expanded=expanded)
 
 
-@extend(dbtimeseries)
+@extend(mainsource)
 def formula_components(self,
                        name: str,
                        expanded: bool=False) -> Optional[Dict[str, str]]:
@@ -139,7 +139,7 @@ def formula_components(self,
 
 # groups
 
-@extend(dbtimeseries)
+@extend(mainsource)
 def register_group_formula(self, name: str, formula: str) -> NONETYPE:
     """Define a group as a named formula.
 
@@ -153,7 +153,7 @@ def register_group_formula(self, name: str, formula: str) -> NONETYPE:
         )
 
 
-@extend(dbtimeseries)
+@extend(mainsource)
 def group_formula(self, name: str, expanded: bool=False) -> Optional[str]:
     """Get the group formula associated with a name.
 
@@ -163,7 +163,7 @@ def group_formula(self, name: str, expanded: bool=False) -> Optional[str]:
         return self.tsh.group_formula(cn, name)
 
 
-@extend(dbtimeseries)
+@extend(mainsource)
 def register_formula_bindings(self,
                               groupname: str,
                               formulaname: str,
@@ -195,7 +195,7 @@ def register_formula_bindings(self,
             bindings
         )
 
-@extend(dbtimeseries)
+@extend(mainsource)
 def bindings_for(self, name: str):
     with self.engine.begin() as cn:
         return self.tsh.bindings_for(cn, name)
