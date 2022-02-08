@@ -988,14 +988,14 @@ def test_more_today(engine, tsh):
 
     tsh.register_formula(
         engine,
-        'clipped-base',
+        'sliced-base',
         '(slice (series "today-base") '
-        '       #:fromdate (today) '
+        '       #:fromdate (today)'
         '       #:todate (timedelta (today) #:days 10))'
     )
 
     # last version: as of today + 1 day
-    ts_2 = tsh.get(engine, 'clipped-base')
+    ts_2 = tsh.get(engine, 'sliced-base')
     assert len(ts_2) == 2
     assert ts_2[0] == 1.0
     assert ts_2.index[0] == now + relativedelta(days=1)
@@ -1006,7 +1006,7 @@ def test_more_today(engine, tsh):
     # and (today) will be bound to it
     ts_2 = tsh.get(
         engine,
-        'clipped-base',
+        'sliced-base',
         revision_date=now + relativedelta(days=1)
     )
     assert len(ts_2) == 2
@@ -1016,7 +1016,7 @@ def test_more_today(engine, tsh):
 
     # first version: as of today - 1 day
     ts_0 = tsh.get(
-        engine, 'clipped-base',
+        engine, 'sliced-base',
         revision_date=now - relativedelta(days=1)
     )
     assert len(ts_0) == 3
@@ -1025,7 +1025,7 @@ def test_more_today(engine, tsh):
 
     # middle version: as of today
     ts_1 = tsh.get(
-        engine, 'clipped-base',
+        engine, 'sliced-base',
         revision_date=now
     )
     assert len(ts_1) == 3
@@ -1034,7 +1034,7 @@ def test_more_today(engine, tsh):
 
     hist = tsh.history(
         engine,
-        'clipped-base'
+        'sliced-base'
     )
     assert [3, 3, 2] == list(map(len, hist.values()))
     series = list(hist.values())
