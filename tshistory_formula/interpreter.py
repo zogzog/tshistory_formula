@@ -151,13 +151,13 @@ class HistoryInterpreter(Interpreter):
     def get(self, name, _getargs):
         # getargs is moot there because histories
         # have been precomputed
-        idate = self.env.get('__idate__')
-        # provide ammo to .today
-        self.getargs['revision_date'] = idate
         # get the nearest inferior or equal for the given
         # insertion date
         assert self.histories
-        return self._find_by_nearest_idate(name, idate)
+        return self._find_by_nearest_idate(
+            name,
+            self.getargs['revision_date']
+        )
 
     def get_auto(self, tree):
         """ helper for autotrophic series that have pre built their
@@ -173,8 +173,10 @@ class HistoryInterpreter(Interpreter):
         return self._find_by_nearest_idate(name, idate)
 
     def evaluate(self, tree, idate, name):
-        self.env['__idate__'] = idate
+        # provide ammo to .today
+        self.getargs['revision_date'] = idate
         self.env['__name__'] = name
+        self.env['__idate__'] = idate
         ts = pevaluate(tree, self.env, self.auto, hist=True)
         ts.name = name
         return ts

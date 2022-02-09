@@ -1708,7 +1708,7 @@ def test_expanded_stopnames(engine, tsh):
 
 def test_autolike_operator_history_nr(engine, tsh):
     """ In which we show that an history call of an operator playing with
-    interpreter args will crash with a lack of an internal
+    interpreter args will NOT crash with a lack of an internal
     revision_date
     """
 
@@ -1753,11 +1753,16 @@ def test_autolike_operator_history_nr(engine, tsh):
         '(weird-operator "today-base")'
     )
 
-    with pytest.raises(AssertionError):
-        tsh.history(
-            engine,
-            'weird-operator'
-        )
+    hist = tsh.history(
+        engine,
+        'weird-operator'
+    )
+    assert_hist("""
+insertion_date             value_date
+2022-01-01 00:00:00+00:00  2022-01-01    1.0
+                           2022-01-02    2.0
+                           2022-01-03    3.0
+""", hist)
 
 
 # groups
