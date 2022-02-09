@@ -1,5 +1,6 @@
 from datetime import datetime as dt, timedelta
 
+from dateutil.relativedelta import relativedelta
 import pandas as pd
 import numpy as np
 import pytest
@@ -1703,6 +1704,60 @@ def test_expanded_stopnames(engine, tsh):
         ' (series "bottom-expandme2" #:fill 0 #:prune 1 #:weight 1.5)'
         ' (options (series "base-expand-me2") #:fill 1 #:prune 2))'
     )
+
+
+def test_autolike_operator_history_nr(engine, tsh):
+    """ In which we show that an history call of an operator playing with
+    interpreter args will crash with a lack of an internal
+    revision_date
+    """
+
+    @func('weird-operator')
+    def weirdo(__interpreter__, name: str) -> pd.Series:
+        assert 'revision_date' in __interpreter__.getargs
+        return __interpreter__.get(
+            name,
+            __interpreter__.getargs
+        )
+
+    @metadata('weird-operator')
+    def weirdo(cn, tsh, tree):
+        return {
+            tree[1]: tsh.metadata(cn, tree[1])
+        }
+
+    @finder('weird-operator')
+    def weirdo(cn, tsh, tree):
+        return {
+            tree[1]: tree
+        }
+
+    ts = pd.Series(
+        [1, 2, 3],
+        index=pd.date_range(
+            pd.Timestamp('2022-1-1'), periods=3, freq='D'
+        )
+    )
+
+    tsh.update(
+        engine,
+        ts,
+        'today-base',
+        'Babar',
+        insertion_date=pd.Timestamp('2022-1-1', tz='utc')
+    )
+
+    tsh.register_formula(
+        engine,
+        'weird-operator',
+        '(weird-operator "today-base")'
+    )
+
+    with pytest.raises(AssertionError):
+        tsh.history(
+            engine,
+            'weird-operator'
+        )
 
 
 # groups
