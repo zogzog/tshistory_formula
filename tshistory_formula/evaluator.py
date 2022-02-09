@@ -35,12 +35,22 @@ def funcid(func):
 
 def pexpreval(tree, env, asyncfuncs=(), pool=None, hist=False):
     if not isinstance(tree, list):
+        # we've got an atom
+        # we do this very late rather than upfront
+        # because the interpreter will need the original
+        # symbolic expression to build names
         return quasiexpreval(tree, env)
 
+    # a functional expression
+    # the recursive evaluation will
+    # * dereference the symbols -> functions
+    # * evaluate the sub-expressions -> values
     exps = [
         pexpreval(exp, env, asyncfuncs, pool, hist)
         for exp in tree
     ]
+    # since some calls are evaluated asynchronously (e.g. series) we
+    # need to resolve all the future objects
     newargs = [
         arg.result() if isinstance(arg, Future) else arg
         for arg in exps[1:]
@@ -60,9 +70,13 @@ def pexpreval(tree, env, asyncfuncs=(), pool=None, hist=False):
     if hist and funkey in asyncfuncs:
         kwargs['__tree__'] = tree
 
+    # an async function, e.g. series, being I/O oriented
+    # can be deferred to a thread
     if funkey in asyncfuncs and pool:
         return pool.submit(proc, *posargs, **kwargs)
 
+    # at this point, we have a function, and all the arguments
+    # have been evaluated, so we do the final call
     return proc(*posargs, **kwargs)
 
 
