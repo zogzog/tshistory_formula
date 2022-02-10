@@ -2,7 +2,10 @@ from typing import Union, Optional
 
 import pandas as pd
 
-from tshistory_formula.registry import gfunc
+from tshistory_formula.registry import (
+    gfunc,
+    gfinder,
+)
 
 
 @gfunc('group')
@@ -42,3 +45,9 @@ def group_add(*grouplist: Union[pd.DataFrame, pd.Series]) -> pd.DataFrame:
     sumts = sum(tss)
 
     return sumdf.add(sumts, axis=0).dropna()
+
+
+@gfinder('group')
+def group_finder(cn, tsh, stree):
+    name = stree[1]
+    return {name: stree}

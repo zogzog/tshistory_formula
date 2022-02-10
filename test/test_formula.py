@@ -2002,6 +2002,55 @@ def test_group_formula(engine, tsh):
         tsh.update_group_metadata(engine, 'group_formula', {'foo': 'bar'})
 
 
+def test_group_vanilla_formula_history(engine, tsh):
+    for idx, idate in enumerate(pd.date_range(start=utcdt(2022, 1, 1),
+                                              end=utcdt(2022, 1, 5),
+                                              freq='D')):
+        df = gengroup(
+            n_scenarios=3,
+            from_date=idate.date(),
+            length=3,
+            freq='D',
+            seed=10 * idx
+        )
+        tsh.group_replace(engine, df, 'group_a', 'test', insertion_date=idate)
+
+    for idx, idate in enumerate(pd.date_range(start=utcdt(2022, 1, 1),
+                                              end=utcdt(2022, 1, 5),
+                                              freq='D')):
+        df = gengroup(
+            n_scenarios=3,
+            from_date=idate.date(),
+            length=3,
+            freq='D',
+            seed=-10 * idx
+        )
+        tsh.group_replace(engine, df, 'group_b', 'test',
+                          insertion_date=idate + timedelta(hours=1))
+
+    formula = '(group-add (group "group_a") (group "group_b"))'
+
+    tsh.register_group_formula(
+        engine,
+        'history_sum',
+        formula,
+    )
+
+    idates = tsh.group_insertion_dates(engine, 'history_sum')
+    assert idates == [
+               pd.Timestamp('2022-01-01 00:00:00+0000', tz='UTC'),
+               pd.Timestamp('2022-01-01 01:00:00+0000', tz='UTC'),
+               pd.Timestamp('2022-01-02 00:00:00+0000', tz='UTC'),
+               pd.Timestamp('2022-01-02 01:00:00+0000', tz='UTC'),
+               pd.Timestamp('2022-01-03 00:00:00+0000', tz='UTC'),
+               pd.Timestamp('2022-01-03 01:00:00+0000', tz='UTC'),
+               pd.Timestamp('2022-01-04 00:00:00+0000', tz='UTC'),
+               pd.Timestamp('2022-01-04 01:00:00+0000', tz='UTC'),
+               pd.Timestamp('2022-01-05 00:00:00+0000', tz='UTC'),
+               pd.Timestamp('2022-01-05 01:00:00+0000', tz='UTC'),
+    ]
+
+
 def test_group_bound_formula(engine, tsh):
     temp = pd.Series(
         [12, 13, 14],

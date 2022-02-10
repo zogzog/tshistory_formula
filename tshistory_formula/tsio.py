@@ -23,7 +23,8 @@ from tshistory_formula.registry import (
     FUNCS,
     HISTORY,
     IDATES,
-    METAS
+    METAS,
+    GFINDERS,
 )
 
 
@@ -1040,6 +1041,34 @@ class timeseries(basets):
             from_value_date=from_value_date,
             to_value_date=to_value_date
         )
+
+    def find_groups(self, cn, tree):
+        op = tree[0]
+        finder = GFINDERS.get(op)
+        seriestree = finder(cn, self, tree) if finder else {}
+        for item in tree:
+            if isinstance(item, list):
+                seriestree.update(
+                    self.find_groups(cn, item)
+                )
+        return seriestree
+
+    @tx
+    def group_insertion_dates(self, cn, name):
+        # case of formula
+        formula = self.group_formula(cn, name)
+        if formula:
+            tree = parse(formula)
+            groups = self.find_groups(cn, tree)
+            allrevs = []
+            for name in groups:
+                if not self.group_exists(cn, name):
+                    continue
+                allrevs += self.group_insertion_dates(cn, name)
+            return sorted(set(allrevs))
+
+        # primaries
+        return super().group_insertion_dates(cn, name)
 
     # group formula binding
 

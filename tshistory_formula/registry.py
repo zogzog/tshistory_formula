@@ -140,6 +140,7 @@ def argscope(name, params):
 # groups
 
 GFUNCS = {}
+GFINDERS = {}
 
 
 def gfunc(name):
@@ -150,6 +151,15 @@ def gfunc(name):
     def decorator(func):
         assert_typed(func)
         GFUNCS[name] = func
+        return func
+
+    return decorator
+
+
+def gfinder(name):
+
+    def decorator(func):
+        GFINDERS[name] = func
         return func
 
     return decorator
