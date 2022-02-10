@@ -20,6 +20,7 @@ except ImportError:
 
 from psyl.lisp import (
     buildargs,
+    let,
     quasiexpreval
 )
 
@@ -40,6 +41,10 @@ def pexpreval(tree, env, asyncfuncs=(), pool=None, hist=False):
         # because the interpreter will need the original
         # symbolic expression to build names
         return quasiexpreval(tree, env)
+
+    if tree[0] == 'let':
+        tree, env = let(env, tree[1:])
+        return pexpreval(tree, env, asyncfuncs, pool, hist)
 
     # a functional expression
     # the recursive evaluation will

@@ -957,7 +957,25 @@ def test_newop_expansion(engine, tsh):
     )
 
     exp = tsh.expanded_formula(engine, 'combinator')
-    assert exp == '(combine "comb-a" "comb-b")'
+    assert exp == (
+        '(let revision_date nil from_value_date nil to_value_date nil'
+        ' (combine "comb-a" "comb-b")'
+        ')'
+    )
+
+    exp = tsh.expanded_formula(
+        engine,
+        'combinator',
+        revision_date=pd.Timestamp('2022-1-1'),
+        to_value_date=pd.Timestamp('2030-1-1')
+    )
+    assert lisp.parse(exp) == [
+        'let',
+        'revision_date', ['date', '2022-01-01T00:00:00'],
+        'from_value_date', None,
+        'to_value_date', ['date', '2030-01-01T00:00:00'],
+        ['combine', 'comb-a', 'comb-b']
+    ]
 
 
 def test_formula_refers_to_nothing(engine, tsh):
@@ -1227,10 +1245,12 @@ def test_expanded(engine, tsh):
 
     exp = tsh.expanded_formula(engine, 'expandme')
     assert exp == (
-        '(add '
-        '(+ 3 (priority (series "exp-a") (customseries))) '
-        '(series "exp-b") '
-        '(priority (series "exp-a") (series "exp-b")))'
+        '(let revision_date nil from_value_date nil to_value_date nil'
+        ' (add'
+        ' (+ 3 (priority (series "exp-a") (customseries)))'
+        ' (series "exp-b")'
+        ' (priority (series "exp-a") (series "exp-b")))'
+        ')'
     )
 
 

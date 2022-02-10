@@ -56,6 +56,7 @@ class Interpreter:
             funcs[name] = func
         funcs['#t'] = True
         funcs['#f'] = False
+        funcs['nil'] = None
         self.env = Env(funcs)
         self.histories = {}
         self.vcache = {}

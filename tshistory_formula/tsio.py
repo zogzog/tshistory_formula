@@ -244,21 +244,24 @@ class timeseries(basets):
     def eval_formula(self, cn, formula, **kw):
         i = kw.get('__interpreter__') or interpreter.Interpreter(cn, self, kw)
         ts = i.evaluate(
-            self._expanded_formula(cn, formula)
+            self._expanded_formula(cn, formula, qargs=kw)
         )
         return ts
 
-    def _expanded_formula(self, cn, formula, stopnames=()):
-        return helper.expanded(
-            self, cn, parse(formula), stopnames=stopnames
+    def _expanded_formula(self, cn, formula, stopnames=(), qargs={}):
+        return helper.inject_toplevel_bindings(
+            helper.expanded(
+                self, cn, parse(formula), stopnames=stopnames
+            ),
+            qargs
         )
 
-    def expanded_formula(self, cn, name, stopnames=()):
+    def expanded_formula(self, cn, name, stopnames=(), **kw):
         formula = self.formula(cn, name)
         if formula is None:
             return
 
-        tree = self._expanded_formula(cn, formula, stopnames)
+        tree = self._expanded_formula(cn, formula, stopnames, kw)
         if tree is None:
             return
 

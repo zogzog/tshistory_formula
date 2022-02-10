@@ -81,7 +81,11 @@ def test_series_formula(client):
         'text': '(+ 5 (series "new-formula"))'
     })
     res = client.get('/series/formula?name=2-levels-formula&expanded=1')
-    assert res.json == '(+ 5 (+ 3 (series "test-formula")))'
+    assert res.json == (
+        '(let revision_date nil from_value_date nil to_value_date nil'
+        ' (+ 5 (+ 3 (series "test-formula")))'
+        ')'
+    )
 
     res = client.get('/series/insertion_dates', params={
         'name': 'new-formula'
@@ -278,7 +282,11 @@ def test_formula(tsx, engine, tsh):
         '2-levels',
         '(+ 5 (series "new-formula"))'
     )
-    assert tsx.formula('2-levels', True) == '(+ 5 (+ 3 (series "in-a-formula")))'
+    assert tsx.formula('2-levels', True) == (
+        '(let revision_date nil from_value_date nil to_value_date nil'
+        ' (+ 5 (+ 3 (series "in-a-formula")))'
+        ')'
+    )
 
     assert tsx.formula_components('2-levels', True) == (
         {'2-levels': [{'new-formula': ['in-a-formula']}]}

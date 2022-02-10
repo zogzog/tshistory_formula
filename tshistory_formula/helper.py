@@ -49,6 +49,17 @@ def extract_auto_options(tree):
     return options
 
 
+def inject_toplevel_bindings(tree, qargs):
+    top = [Symbol('let')]
+    for attr in ('revision_date', 'from_value_date', 'to_value_date'):
+        val = qargs.get(attr)
+        top += [Symbol(attr),
+                [Symbol('date'), val.isoformat()] if val else Symbol('nil')]
+
+    top.append(tree)
+    return top
+
+
 def expanded(tsh, cn, tree, stopnames=()):
     # base case: check the current operation
     op = tree[0]
