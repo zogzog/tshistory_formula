@@ -1042,14 +1042,15 @@ class timeseries(basets):
             to_value_date=to_value_date
         )
 
-    def find_groups(self, cn, tree):
+    def find_groups_and_series(self, cn, tree):
         op = tree[0]
-        finder = GFINDERS.get(op)
+        super_finder = dict(GFINDERS, **FINDERS)
+        finder = super_finder.get(op)
         seriestree = finder(cn, self, tree) if finder else {}
         for item in tree:
             if isinstance(item, list):
                 seriestree.update(
-                    self.find_groups(cn, item)
+                    self.find_groups_and_series(cn, item)
                 )
         return seriestree
 
@@ -1059,12 +1060,18 @@ class timeseries(basets):
         formula = self.group_formula(cn, name)
         if formula:
             tree = parse(formula)
-            groups = self.find_groups(cn, tree)
+            groups_and_series = self.find_groups_and_series(cn, tree)
             allrevs = []
-            for name in groups:
-                if not self.group_exists(cn, name):
-                    continue
-                allrevs += self.group_insertion_dates(cn, name)
+            for name, info in groups_and_series.items():
+                stype = str(info[0])
+                if stype == 'group':
+                    if not self.group_exists(cn, name):
+                        continue
+                    allrevs += self.group_insertion_dates(cn, name)
+                if stype == 'series':
+                    if not self.exists(cn, name):
+                        continue
+                    allrevs += self.insertion_dates(cn, name)
             return sorted(set(allrevs))
 
         # primaries

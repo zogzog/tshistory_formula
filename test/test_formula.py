@@ -2051,6 +2051,60 @@ def test_group_vanilla_formula_history(engine, tsh):
     ]
 
 
+def test_group_and_series_formula_history(engine, tsh):
+    for idx, idate in enumerate(
+            pd.date_range(
+                start=utcdt(2022, 1, 1),
+                end=utcdt(2022, 1, 5),
+                freq='D'
+            )
+    ):
+        df = gengroup(
+            n_scenarios=3,
+            from_date=idate.date(),
+            length=3,
+            freq='D',
+            seed=10 * idx
+        )
+        tsh.group_replace(engine, df, 'group_c', 'test', insertion_date=idate)
+
+        ts = pd.Series(
+            range(3),
+            index=pd.date_range(
+                start=idate.date(),
+                periods=3,
+                freq='D')
+        ) + idx / 10
+
+        tsh.update(
+            engine,
+            ts,
+            'series_with_group', 'test',
+            insertion_date=idate + timedelta(hours=2)
+        )
+
+        formula = '(group-add (group "group_c") (series "series_with_group"))'
+        tsh.register_group_formula(
+            engine,
+            'history_mixte',
+            formula,
+        )
+
+    idates = tsh.group_insertion_dates(engine, 'history_mixte')
+    assert [
+        pd.Timestamp('2022-01-01 00:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-01-01 02:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-01-02 00:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-01-02 02:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-01-03 00:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-01-03 02:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-01-04 00:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-01-04 02:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-01-05 00:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-01-05 02:00:00+0000', tz='UTC'),
+    ] == idates
+
+
 def test_group_bound_formula(engine, tsh):
     temp = pd.Series(
         [12, 13, 14],
