@@ -20,7 +20,8 @@ from tshistory_formula.registry import (
     func,
     history,
     insertion_dates,
-    metadata
+    metadata,
+    argscope
 )
 from tshistory_formula.helper import (
     NONETYPE,
@@ -64,6 +65,16 @@ def options(series: pd.Series,
         series.options['weight'] = weight
 
     return series
+
+
+def _bestdate(d1, d2, tzaware, bestfunc):
+    d1 = compatible_date(tzaware, d1) if d1 else None
+    d2 = compatible_date(tzaware, d2) if d2 else None
+    if not d1:
+        return d2
+    if not d2:
+        return d1
+    return bestfunc(d1, d2)
 
 
 @func('series', auto=True)
@@ -112,11 +123,27 @@ def series(__interpreter__,
 
     args = i.getargs.copy()
     if __from_value_date__:
-        args['from_value_date'] = compatible_date(tzaware, __from_value_date__)
+        args['from_value_date'] = _bestdate(
+            __from_value_date__,
+            args.get('from_value_date', __from_value_date__),
+            tzaware,
+            max
+        )
     if __to_value_date__:
-        args['to_value_date'] = compatible_date(tzaware, __to_value_date__)
+        args['to_value_date'] = _bestdate(
+            __to_value_date__,
+            args.get('to_value_date', __to_value_date__),
+            tzaware,
+            min
+        )
 
     ts = i.get(name, args)
+    # NOTE: we are cutting there now, but we shouldn't have to
+    # the issue lies in the "optimized" way histories are computed:
+    # the history interpreter needs a cut there
+    ts = ts.loc[
+        args.get('from_value_date'):args.get('to_value_date')
+    ]
     if prune:
         ts = ts[:-prune]
     ts.options = {
@@ -124,6 +151,7 @@ def series(__interpreter__,
     }
     if weight is not None:
         ts.options['weight'] = weight
+
     return ts
 
 
@@ -580,6 +608,10 @@ def series_clip(series: pd.Series,
 
 
 @func('slice')
+@argscope('slice', {
+    'fromdate': 'from_value_date',
+    'todate': 'to_value_date'
+})
 def slice(series: pd.Series,
           fromdate: Optional[pd.Timestamp]=None,
           todate: Optional[pd.Timestamp]=None) -> pd.Series:
@@ -597,15 +629,10 @@ def slice(series: pd.Series,
     if fromdate is None and todate is None:
         return series
 
-    tzaware = tzaware_serie(series)
-    if fromdate:
-        fromdate = compatible_date(tzaware, fromdate)
-    if todate:
-        todate = compatible_date(tzaware, todate)
-
-    sliced = series.loc[fromdate:todate]
-    sliced.options = series.options
-    return sliced
+    # the series operator did request with fromdate/todate
+    # because of our `scope` hint
+    # hence we a little to do
+    return series
 
 
 @func('row-mean')

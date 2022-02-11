@@ -11,6 +11,7 @@ IDATES = {}
 METAS = {}
 FINDERS = {}
 AUTO = {}
+ARGSCOPES = {}
 
 
 def _ensure_options(obj):
@@ -116,6 +117,15 @@ def finder(name):
 
     def decorator(func):
         FINDERS[name] = func
+        return func
+
+    return decorator
+
+
+def argscope(name, params):
+
+    def decorator(func):
+        ARGSCOPES[name] = params
         return func
 
     return decorator

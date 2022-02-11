@@ -10,6 +10,7 @@ from numbers import Number
 
 import pandas as pd
 from psyl.lisp import (
+    buildargs,
     Env,
     evaluate,
     expreval,
@@ -20,8 +21,9 @@ from psyl.lisp import (
 )
 
 from tshistory_formula.registry import (
+    FUNCS,
     METAS,
-    FUNCS
+    ARGSCOPES
 )
 
 
@@ -60,9 +62,42 @@ def inject_toplevel_bindings(tree, qargs):
     return top
 
 
-def expanded(tsh, cn, tree, stopnames=()):
+def inject_scoped_values(valmap, tree):
+    _posargs, kwargs = buildargs(tree[1:])
+    qargs = {}
+    for treeparam, targetparam in valmap.items():
+        if treeparam in kwargs:
+            qargs[targetparam] = kwargs[treeparam]
+
+    if not qargs:
+        # nothing to transform
+        return tree
+
+    top = [Symbol('let')]
+    for name, value in qargs.items():
+        top += [Symbol(name), value]
+
+    top.append(tree)
+    return top
+
+
+def expanded(tsh, cn, tree, stopnames=(), scoped=None):
+    # handle scoped parameter (internal memo)
+    scoped = set() if scoped is None else scoped
+
     # base case: check the current operation
     op = tree[0]
+
+    if op in ARGSCOPES:
+        if id(tree) not in scoped:
+            # we need to avoid an infinite recursion
+            # as the new tree contains the old ...
+            scoped.add(id(tree))
+            return inject_scoped_values(
+                ARGSCOPES[op],
+                expanded(tsh, cn, tree, stopnames, scoped)
+            )
+
     if op == 'series':
         metas = METAS.get(op)
         seriesmeta = metas(cn, tsh, tree) if metas else None
