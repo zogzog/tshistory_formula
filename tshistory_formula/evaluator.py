@@ -2,6 +2,7 @@ import inspect
 from concurrent.futures import (
     Future
 )
+from functools import partial
 
 try:
     from functools import cache
@@ -32,6 +33,13 @@ def funcid(func):
     return hash(inspect.getsource(func))
 
 
+QARGS = {
+    '__from_value_date__': 'from_value_date',
+    '__to_value_date__': 'to_value_date',
+    '__revision_date__': 'revision_date'
+}
+
+
 # parallel evaluator
 
 def pexpreval(tree, env, asyncfuncs=(), pool=None, hist=False):
@@ -43,8 +51,13 @@ def pexpreval(tree, env, asyncfuncs=(), pool=None, hist=False):
         return quasiexpreval(tree, env)
 
     if tree[0] == 'let':
-        tree, env = let(env, tree[1:])
-        return pexpreval(tree, env, asyncfuncs, pool, hist)
+        newtree, newenv = let(
+            env, tree[1:],
+            quasiexpreval
+        )
+        # the env grows new bindigs
+        # the tree has lost its let-definition
+        return pexpreval(newtree, newenv, asyncfuncs, pool, hist)
 
     # a functional expression
     # the recursive evaluation will
@@ -74,6 +87,13 @@ def pexpreval(tree, env, asyncfuncs=(), pool=None, hist=False):
     funkey = funcid(func)
     if hist and funkey in asyncfuncs:
         kwargs['__tree__'] = tree
+
+    # prepare args injection from the lisp environment
+    sig = inspect.getfullargspec(func).args
+    posargs = [
+        env.find(QARGS[arg]) for arg in sig
+        if arg in QARGS
+    ] + posargs
 
     # an async function, e.g. series, being I/O oriented
     # can be deferred to a thread

@@ -129,7 +129,7 @@ def _name_from_signature_and_args(name, func, a, kw):
     sig = inspect.signature(func)
     out = [name]
     for idx, (pname, param) in enumerate(sig.parameters.items()):
-        if pname == '__interpreter__':
+        if pname.startswith('__'):
             continue
         if param.default is inspect._empty:
             # almost pure positional
@@ -183,7 +183,7 @@ def assert_typed(func):
     badargs = []
     badreturn = False
     for param in signature.parameters.values():
-        if param.name == '__interpreter__':
+        if param.name.startswith('__'):
             continue
         if param.annotation is inspect._empty:
             badargs.append(param.name)
@@ -339,7 +339,7 @@ def function_types(func):
         'return': typename(sig.return_annotation)
     }
     for par in sig.parameters.values():
-        if par.name == '__interpreter__':
+        if par.name.startswith('__'):
             continue
         atype = typename(par.annotation)
         if par.default is not inspect._empty:
@@ -413,7 +413,14 @@ def typecheck(tree, env=FUNCS):
     kwargs = {}
     kwargstypes = {}
     kw = None
-    for idx, arg in enumerate(tree[1:]):
+    # start counting parameters *after* the __special__ (invisible to
+    # the end users) parameters
+    start_at = len([
+        p for p in signature.parameters
+        if p.startswith('__')
+    ])
+
+    for idx, arg in enumerate(tree[1:], start=start_at):
         # keywords
         if isinstance(arg, Keyword):
             kw = arg

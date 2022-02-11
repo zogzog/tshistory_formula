@@ -68,6 +68,8 @@ def options(series: pd.Series,
 
 @func('series', auto=True)
 def series(__interpreter__,
+           __from_value_date__,
+           __to_value_date__,
            name: seriesname,
            fill: Union[str, Number, NONETYPE]=None,
            prune: Optional[int]=None,
