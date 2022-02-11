@@ -53,7 +53,7 @@ def pexpreval(tree, env, asyncfuncs=(), pool=None, hist=False):
     if tree[0] == 'let':
         newtree, newenv = let(
             env, tree[1:],
-            quasiexpreval
+            partial(pexpreval, asyncfuncs=asyncfuncs, pool=pool, hist=hist)
         )
         # the env grows new bindigs
         # the tree has lost its let-definition

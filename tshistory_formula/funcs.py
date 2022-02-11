@@ -97,13 +97,26 @@ def series(__interpreter__,
 
     """
     i = __interpreter__
-    ts = i.get(name, i.getargs)
-    if ts is None:
-        if not i.tsh.exists(i.cn, name): # that should be turned into an assertion
-            raise ValueError(f'No such series `{name}`')
-        meta = i.tsh.metadata(i.cn, name)
-        ts = empty_series(meta['tzaware'], name=name)
+    exists = i.tsh.exists(i.cn, name)
+    if not exists:
+        if i.tsh.othersources and i.tsh.othersources.exists(name):
+            exists = True
 
+    if not exists:
+        raise ValueError(f'No such series `{name}`')
+
+    meta = i.tsh.metadata(i.cn, name)
+    if meta is None:
+        meta = i.tsh.othersources.metadata(name)
+    tzaware = meta['tzaware']
+
+    args = i.getargs.copy()
+    if __from_value_date__:
+        args['from_value_date'] = compatible_date(tzaware, __from_value_date__)
+    if __to_value_date__:
+        args['to_value_date'] = compatible_date(tzaware, __to_value_date__)
+
+    ts = i.get(name, args)
     if prune:
         ts = ts[:-prune]
     ts.options = {
