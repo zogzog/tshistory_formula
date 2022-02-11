@@ -20,7 +20,10 @@ from tshistory_formula.registry import (
     finder,
     HISTORY,
     history,
-    metadata
+    metadata,
+    gfunc,
+    gfinder,
+    ginsertion_dates,
 )
 from tshistory_formula.helper import (
     constant_fold,
@@ -33,7 +36,8 @@ from tshistory_formula.helper import (
 from tshistory_formula.interpreter import (
     Interpreter,
     NullIntepreter,
-    OperatorHistory
+    OperatorHistory,
+    GroupInterpreter,
 )
 
 
@@ -2103,6 +2107,87 @@ def test_group_and_series_formula_history(engine, tsh):
         pd.Timestamp('2022-01-05 00:00:00+0000', tz='UTC'),
         pd.Timestamp('2022-01-05 02:00:00+0000', tz='UTC'),
     ] == idates
+
+
+def test_groups_autotrophic_history(engine, tsh):
+    # reset gfuncs
+    GroupInterpreter.FUNCS = None
+
+    df1 = gengroup(
+        n_scenarios=3,
+        from_date=dt(2022, 2, 1),
+        length=3,
+        freq='D',
+        seed=1
+    )
+    df2 = gengroup(
+        n_scenarios=3,
+        from_date=dt(2022, 2, 1),
+        length=3,
+        freq='D',
+        seed=-1
+    )
+
+    @gfunc('gauto-operator', auto=True)
+    def auto_operator(__interpreter__) -> pd.DataFrame:
+        revision_date = __interpreter__.getargs['revision_date']
+        if revision_date and revision_date < utcdt(2022, 2, 2):
+            return df1
+        return df2
+
+    @gfinder('gauto-operator')
+    def auto_operator_finder(cn, tsh, tree):
+        return {'gauto-operator': tree}
+
+    @ginsertion_dates('gauto-operator')
+    def auto_insertion_dates():
+        return [utcdt(2022, 2, 1), utcdt(2022, 2, 2)]
+
+    tsh.register_group_formula(
+        engine,
+        'auto_group',
+        '(gauto-operator)',
+    )
+    tsh.group_get(engine, 'auto_group')
+
+    # primary group
+    for idx, idate in enumerate(pd.date_range(start=utcdt(2022, 2, 1),
+                                              end=utcdt(2022, 2, 5),
+                                              freq='D')):
+        df = gengroup(
+            n_scenarios=3,
+            from_date=dt(2022, 2, 1),
+            length=3,
+            freq='D',
+            seed=10 * idx
+        )
+        tsh.group_replace(engine, df, 'group_d', 'test',
+                          insertion_date=idate + timedelta(hours=3))
+
+    # 2nd degree formula
+    formula = """(group-add (group "auto_group" ) (group "group_d"))"""
+
+    tsh.register_group_formula(
+        engine,
+        'higher_level',
+        formula,
+    )
+    tsh.group_get(engine, 'higher_level')
+
+    idates = tsh.group_insertion_dates(engine, 'higher_level')
+
+    assert [
+        pd.Timestamp('2022-02-01 00:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-02-01 03:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-02-02 00:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-02-02 03:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-02-03 03:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-02-04 03:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-02-05 03:00:00+0000', tz='UTC'),
+    ] == idates
+    # the idates at 3 o'ckock came from the primary
+    # the ones at 00h came from the autotrophic
+
 
 
 def test_group_bound_formula(engine, tsh):

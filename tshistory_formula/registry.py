@@ -141,17 +141,23 @@ def argscope(name, params):
 
 GFUNCS = {}
 GFINDERS = {}
+GMETAS = {}
+GHISTORY = {}
+GAUTO = {}
+GIDATES = {}
 
 
-def gfunc(name):
+def gfunc(name, auto=False):
     # work around the circular import
     from tshistory_formula.helper import assert_typed
-    from tshistory_formula.interpreter import Interpreter
 
     def decorator(func):
         assert_typed(func)
         GFUNCS[name] = func
         return func
+
+    if auto:
+        GAUTO[name] = func
 
     return decorator
 
@@ -160,6 +166,16 @@ def gfinder(name):
 
     def decorator(func):
         GFINDERS[name] = func
+        return func
+
+    return decorator
+
+
+def ginsertion_dates(name):
+
+    def decorator(func):
+        assert name in GAUTO, f'operator {name} is not declared as "auto"'
+        GIDATES[name] = func
         return func
 
     return decorator

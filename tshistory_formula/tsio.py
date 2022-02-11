@@ -25,6 +25,8 @@ from tshistory_formula.registry import (
     IDATES,
     METAS,
     GFINDERS,
+    GAUTO,
+    GIDATES,
 )
 
 
@@ -1056,26 +1058,29 @@ class timeseries(basets):
 
     @tx
     def group_insertion_dates(self, cn, name):
-        # case of formula
         formula = self.group_formula(cn, name)
-        if formula:
-            tree = parse(formula)
-            groups_and_series = self.find_groups_and_series(cn, tree)
-            allrevs = []
-            for name, info in groups_and_series.items():
-                stype = str(info[0])
-                if stype == 'group':
-                    if not self.group_exists(cn, name):
-                        continue
-                    allrevs += self.group_insertion_dates(cn, name)
-                if stype == 'series':
-                    if not self.exists(cn, name):
-                        continue
-                    allrevs += self.insertion_dates(cn, name)
-            return sorted(set(allrevs))
-
         # primaries
-        return super().group_insertion_dates(cn, name)
+        if not formula:
+            return super().group_insertion_dates(cn, name)
+
+        tree = parse(formula)
+        groups_and_series = self.find_groups_and_series(cn, tree)
+        allrevs = []
+        for name, info in groups_and_series.items():
+            operator_name = str(info[0])
+            if operator_name == 'group':
+                if not self.group_exists(cn, name):
+                    continue
+                allrevs += self.group_insertion_dates(cn, name)
+            elif operator_name == 'series':
+                if not self.exists(cn, name):
+                    continue
+                allrevs += self.insertion_dates(cn, name)
+            elif operator_name in GAUTO:
+                idates_func = GIDATES[operator_name]
+                allrevs += idates_func()
+
+        return sorted(set(allrevs))
 
     # group formula binding
 
