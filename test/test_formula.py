@@ -2054,6 +2054,74 @@ def test_group_vanilla_formula_history(engine, tsh):
                pd.Timestamp('2022-01-05 01:00:00+0000', tz='UTC'),
     ]
 
+    hist_a = tsh.group_history(
+        engine,
+        'group_a',
+        from_insertion_date=utcdt(2022, 1, 3),
+        to_insertion_date=utcdt(2022, 1, 5)
+    )
+
+    hist_b = tsh.group_history(
+        engine,
+        'group_b',
+        from_insertion_date=utcdt(2022, 1, 3),
+        to_insertion_date=utcdt(2022, 1, 5)
+    )
+
+    hist_sum = tsh.group_history(
+        engine,
+        'history_sum',
+        from_insertion_date=utcdt(2022, 1, 3),
+        to_insertion_date=utcdt(2022, 1, 5)
+    )
+
+    assert_hist("""
+                                         0     1     2
+insertion_date            value_date                  
+2022-01-03 00:00:00+00:00 2022-01-03  20.0  21.0  22.0
+                          2022-01-04  21.0  22.0  23.0
+                          2022-01-05  22.0  23.0  24.0
+2022-01-04 00:00:00+00:00 2022-01-04  30.0  31.0  32.0
+                          2022-01-05  31.0  32.0  33.0
+                          2022-01-06  32.0  33.0  34.0
+2022-01-05 00:00:00+00:00 2022-01-05  40.0  41.0  42.0
+                          2022-01-06  41.0  42.0  43.0
+                          2022-01-07  42.0  43.0  44.0    
+""", hist_a)
+
+    assert_hist("""
+                                         0     1     2
+insertion_date            value_date                  
+2022-01-03 01:00:00+00:00 2022-01-03 -20.0 -19.0 -18.0
+                          2022-01-04 -19.0 -18.0 -17.0
+                          2022-01-05 -18.0 -17.0 -16.0
+2022-01-04 01:00:00+00:00 2022-01-04 -30.0 -29.0 -28.0
+                          2022-01-05 -29.0 -28.0 -27.0
+                          2022-01-06 -28.0 -27.0 -26.0
+""", hist_b)
+
+    assert_hist("""
+                                         0     1     2
+insertion_date            value_date                  
+2022-01-03 00:00:00+00:00 2022-01-03  11.0  13.0  15.0
+                          2022-01-04  13.0  15.0  17.0
+2022-01-03 01:00:00+00:00 2022-01-03   0.0   2.0   4.0
+                          2022-01-04   2.0   4.0   6.0
+                          2022-01-05   4.0   6.0   8.0
+2022-01-04 00:00:00+00:00 2022-01-04  11.0  13.0  15.0
+                          2022-01-05  13.0  15.0  17.0
+2022-01-04 01:00:00+00:00 2022-01-04   0.0   2.0   4.0
+                          2022-01-05   2.0   4.0   6.0
+                          2022-01-06   4.0   6.0   8.0
+2022-01-05 00:00:00+00:00 2022-01-05  11.0  13.0  15.0
+                          2022-01-06  13.0  15.0  17.0
+""", hist_sum)
+
+    # it seems alright.  One should note the "incoherent" stat when one
+    # component is refreshed before the other. It produced a quasi-random state
+    # (there are usually no concordance between the scenarios from one run to another)
+    # It may call for more developpments....
+
 
 def test_group_and_series_formula_history(engine, tsh):
     for idx, idate in enumerate(
@@ -2107,6 +2175,22 @@ def test_group_and_series_formula_history(engine, tsh):
         pd.Timestamp('2022-01-05 00:00:00+0000', tz='UTC'),
         pd.Timestamp('2022-01-05 02:00:00+0000', tz='UTC'),
     ] == idates
+
+    hist =  tsh.group_history(engine, 'history_mixte',
+                              from_insertion_date=utcdt(2022, 1, 2),
+                              to_insertion_date=utcdt(2022, 1, 3))
+
+    assert_hist("""
+                                         0     1     2
+insertion_date            value_date                  
+2022-01-02 00:00:00+00:00 2022-01-02  11.0  12.0  13.0
+                          2022-01-03  13.0  14.0  15.0
+2022-01-02 02:00:00+00:00 2022-01-02  10.1  11.1  12.1
+                          2022-01-03  12.1  13.1  14.1
+                          2022-01-04  14.1  15.1  16.1
+2022-01-03 00:00:00+00:00 2022-01-03  21.1  22.1  23.1
+                          2022-01-04  23.1  24.1  25.1
+""", hist)
 
 
 def test_groups_autotrophic_history(engine, tsh):
@@ -2188,6 +2272,20 @@ def test_groups_autotrophic_history(engine, tsh):
     # the idates at 3 o'ckock came from the primary
     # the ones at 00h came from the autotrophic
 
+    hist = tsh.group_history(engine, 'higher_level',
+                           from_insertion_date=utcdt(2022, 2, 2),
+                           to_insertion_date=utcdt(2022, 2, 3))
+
+    assert_hist("""
+                                         0     1     2
+insertion_date            value_date                  
+2022-02-02 00:00:00+00:00 2022-02-01  -1.0   1.0   3.0
+                          2022-02-02   1.0   3.0   5.0
+                          2022-02-03   3.0   5.0   7.0
+2022-02-02 03:00:00+00:00 2022-02-01   9.0  11.0  13.0
+                          2022-02-02  11.0  13.0  15.0
+                          2022-02-03  13.0  15.0  17.0
+""", hist)
 
 
 def test_group_bound_formula(engine, tsh):

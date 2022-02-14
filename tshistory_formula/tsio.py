@@ -1082,6 +1082,38 @@ class timeseries(basets):
 
         return sorted(set(allrevs))
 
+    @tx
+    def group_history(self, cn, name,
+                      from_value_date=None,
+                      to_value_date=None,
+                      from_insertion_date=None,
+                      to_insertion_date=None):
+        idates = self.group_insertion_dates(cn, name)
+        if from_insertion_date:
+            idates = [
+                id for id in idates
+                if id >= from_insertion_date
+            ]
+            if not len(idates):
+                return {}
+        if to_insertion_date:
+            idates = [
+                id for id in idates
+                if id <= to_insertion_date
+            ]
+            if not len(idates):
+                return {}
+        history = {}
+        for idate in idates:
+            history[idate] = self.group_get(
+                cn,
+                name,
+                from_value_date=from_value_date,
+                to_value_date=to_value_date,
+                revision_date=idate
+            )
+        return history
+
     # group formula binding
 
     @tx
