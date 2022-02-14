@@ -562,10 +562,9 @@ def test_slice_naiveseries(engine, tsh):
         ')',
     )
 
-    assert len(
-        tsh.get(engine, 'slicing-naive',
+    ts = tsh.get(engine, 'slicing-naive',
                 from_value_date=dt(2021, 1, 1))
-        ) == 0
+    assert not len(ts)
 
     tsh.get(engine, 'slicing-naive')
     # pandas didn't crash us \o/
