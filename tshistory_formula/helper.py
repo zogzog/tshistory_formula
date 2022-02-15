@@ -34,6 +34,20 @@ class seriesname(str):
     pass
 
 
+def rename_operator(tree, oldname, newname):
+    if not isinstance(tree, list):
+        return tree
+
+    op = tree[0]
+    if op == Symbol(oldname):
+        tree[0] = Symbol(newname)
+
+    return [
+        rename_operator(item, oldname, newname)
+        for item in tree
+    ]
+
+
 def extract_auto_options(tree):
     options = []
     optnames = ('fill', 'weight', 'prune')

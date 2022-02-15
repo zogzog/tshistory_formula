@@ -121,7 +121,7 @@ def test_operators_types():
     # prune the types registered from other modules/plugins
     # we want to only show the ones provided by the current package
     opnames = set(
-        ('*', '+', '/', 'add', 'div', 'max', 'min', 'mul',
+        ('*', '+', '/', 'add', 'div', 'row-max', 'row-min', 'mul',
          'clip', 'priority', 'row-mean', 'series', 'slice', 'std',
          'timedelta', 'today')
     )
@@ -148,12 +148,12 @@ def test_operators_types():
                  'return': 'Series',
                  'series': 'Series'},
         'div': {'return': 'Series', 's1': 'Series', 's2': 'Series'},
-        'max': {'return': 'Series',
-                'serieslist': 'Series',
-                'skipna': 'Default[bool=True]'},
-        'min': {'return': 'Series',
-                'serieslist': 'Series',
-                'skipna': 'Default[bool=True]'},
+        'row-max': {'return': 'Series',
+                    'serieslist': 'Series',
+                    'skipna': 'Default[bool=True]'},
+        'row-min': {'return': 'Series',
+                    'serieslist': 'Series',
+                    'skipna': 'Default[bool=True]'},
         'mul': {'return': 'Series', 'serieslist': 'Series'},
         'priority': {'return': 'Series', 'serieslist': 'Series'},
         'row-mean': {'return': 'Series',

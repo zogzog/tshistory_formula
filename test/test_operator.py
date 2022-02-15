@@ -785,7 +785,7 @@ def test_row_mean(engine, tsh):
 def test_min(engine, tsh):
     _prepare_row_ops(engine, tsh)
 
-    formula = '(min (series "station0") (series "station1") (series "station2"))'
+    formula = '(row-min (series "station0") (series "station1") (series "station2"))'
     tsh.register_formula(
         engine,
         'weather_min',
@@ -802,7 +802,7 @@ def test_min(engine, tsh):
 2015-01-08 00:00:00+00:00    0.0
 """, tsh.get(engine, 'weather_min'))
 
-    formula = '(min (series "station0") (series "station1") (series "station2") #:skipna #f)'
+    formula = '(row-min (series "station0") (series "station1") (series "station2") #:skipna #f)'
     tsh.register_formula(
         engine,
         'weather_min_skipna',
@@ -823,7 +823,7 @@ def test_min(engine, tsh):
 def test_max(engine, tsh):
     _prepare_row_ops(engine, tsh)
 
-    formula = '(max (series "station0") (series "station1") (series "station2"))'
+    formula = '(row-max (series "station0") (series "station1") (series "station2"))'
     tsh.register_formula(
         engine,
         'weather_max',
@@ -840,7 +840,7 @@ def test_max(engine, tsh):
 2015-01-08 00:00:00+00:00    2.0
 """, tsh.get(engine, 'weather_max'))
 
-    formula = '(max (series "station0") (series "station1") (series "station2") #:skipna #f)'
+    formula = '(row-max (series "station0") (series "station1") (series "station2") #:skipna #f)'
     tsh.register_formula(
         engine,
         'weather_max_skipna',

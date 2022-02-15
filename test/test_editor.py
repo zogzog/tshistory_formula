@@ -197,7 +197,7 @@ def test_complicated_thing(tsa):
     tsa.register_formula(
         'complicated',
         '(add (* 3.1416 (series "groundzero-b" #:fill "bfill" #:prune 1))'
-        '     (* 2 (min (+ 1 (series "groundzero-b")) (series "one-b"))))',
+        '     (* 2 (row-min (+ 1 (series "groundzero-b")) (series "one-b"))))',
     )
 
     presenter = fancypresenter(tsa, 'complicated', {})

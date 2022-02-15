@@ -674,7 +674,7 @@ def row_mean(*serieslist: pd.Series, skipna: Optional[bool]=True) -> pd.Series:
     ).dropna()
 
 
-@func('min')
+@func('row-min')
 def row_min(*serieslist: pd.Series, skipna: Optional[bool]=True) -> pd.Series:
     """
     Computes the row-wise minimum of its input series.
@@ -689,7 +689,7 @@ def row_min(*serieslist: pd.Series, skipna: Optional[bool]=True) -> pd.Series:
     return allseries.min(axis=1, skipna=skipna).dropna()
 
 
-@func('max')
+@func('row-max')
 def row_max(*serieslist: pd.Series, skipna: Optional[bool]=True) -> pd.Series:
     """
     Computes the row-wise maximum of its input series.

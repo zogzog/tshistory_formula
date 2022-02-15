@@ -27,7 +27,8 @@ from tshistory_formula.helper import (
     _extract_from_expr,
     expanded,
     _name_from_signature_and_args,
-    name_of_expr
+    name_of_expr,
+    rename_operator
 )
 from tshistory_formula.interpreter import (
     Interpreter,
@@ -74,6 +75,14 @@ def test_bad_toplevel_type(engine, tsh):
             'test_bad_toplevel_type',
             '(+ 2 (* 3 (/ 8 4)))',
         )
+
+
+def test_rename_operator():
+    form = '(foo 1 (bar 5 (foo 6)))'
+    tree = lisp.parse(form)
+    assert lisp.serialize(
+        rename_operator(tree, 'foo', 'FOO')
+    ) == '(FOO 1 (bar 5 (FOO 6)))'
 
 
 def test_finder(engine, tsh):

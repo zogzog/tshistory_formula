@@ -4,12 +4,16 @@ from pprint import pprint
 import click
 import pandas as pd
 from sqlalchemy import create_engine
-from psyl.lisp import parse
+from psyl.lisp import (
+    parse,
+    serialize
+)
 from tshistory.util import find_dburi
 
 from tshistory_formula.schema import formula_schema
 from tshistory_formula.tsio import timeseries
 from tshistory_formula.helper import (
+    rename_operator,
     typecheck
 )
 from tshistory_formula.interpreter import Interpreter
@@ -176,6 +180,26 @@ def migrate_to_groups(db_uri, namespace='tsh'):
 
     with engine.begin() as cn:
         cn.execute(sql)
+
+
+@click.command(name='rename-minmax-operators')
+@click.argument('db-uri')
+@click.option('--namespace', default='tsh')
+def rename_minmax_operators(db_uri, namespace='tsh'):
+    engine = create_engine(find_dburi(db_uri))
+    tsh = timeseries(namespace)
+
+    for name, text in engine.execute(
+            f'select name, text from "{namespace}".formula'
+    ).fetchall():
+        tree0 = parse(text)
+        tree1 = rename_operator(tree0, 'min', 'row-min')
+        tree2 = rename_operator(tree1, 'max', 'row-max')
+        tsh.register_formula(
+            engine,
+            name,
+            serialize(tree2)
+        )
 
 
 @click.command(name='shell')
