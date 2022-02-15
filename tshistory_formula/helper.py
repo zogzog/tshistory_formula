@@ -76,6 +76,13 @@ def inject_toplevel_bindings(tree, qargs):
     return top
 
 
+_ARGFUNC = {
+    'from_value_date': 'max',
+    'to_value_date': 'min',
+    'revision_date': None
+}
+
+
 def inject_scoped_values(valmap, tree):
     _posargs, kwargs = buildargs(tree[1:])
     qargs = {}
@@ -89,7 +96,9 @@ def inject_scoped_values(valmap, tree):
 
     top = [Symbol('let')]
     for name, value in qargs.items():
-        top += [Symbol(name), value]
+        func = _ARGFUNC[name]
+        top += [Symbol(name),
+                [Symbol(func), Symbol(name), value] if func else value]
 
     top.append(tree)
     return top

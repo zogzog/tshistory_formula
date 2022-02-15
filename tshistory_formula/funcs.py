@@ -67,20 +67,21 @@ def options(series: pd.Series,
     return series
 
 
-def _bestdate(d1, d2, tzaware, bestfunc):
-    d1 = compatible_date(tzaware, d1) if d1 else None
-    d2 = compatible_date(tzaware, d2) if d2 else None
-    if not d1:
-        return d2
-    if not d2:
-        return d1
-    return bestfunc(d1, d2)
+@func('min')
+def scalar_min(*args: Number) -> Number:
+    return min(filter(None, args))
+
+
+@func('max')
+def scalar_max(*args: Number) -> Number:
+    return max(filter(None, args))
 
 
 @func('series', auto=True)
 def series(__interpreter__,
            __from_value_date__,
            __to_value_date__,
+           __revision_date__,
            name: seriesname,
            fill: Union[str, Number, NONETYPE]=None,
            prune: Optional[int]=None,
@@ -121,28 +122,19 @@ def series(__interpreter__,
         meta = i.tsh.othersources.metadata(name)
     tzaware = meta['tzaware']
 
-    args = i.getargs.copy()
-    if __from_value_date__:
-        args['from_value_date'] = _bestdate(
-            __from_value_date__,
-            args.get('from_value_date', __from_value_date__),
-            tzaware,
-            max
-        )
-    if __to_value_date__:
-        args['to_value_date'] = _bestdate(
-            __to_value_date__,
-            args.get('to_value_date', __to_value_date__),
-            tzaware,
-            min
-        )
+    args = {
+        'from_value_date': __from_value_date__,
+        'to_value_date': __to_value_date__,
+        'revision_date': __revision_date__
+    }
 
     ts = i.get(name, args)
     # NOTE: we are cutting there now, but we shouldn't have to
     # the issue lies in the "optimized" way histories are computed:
     # the history interpreter needs a cut there
     ts = ts.loc[
-        args.get('from_value_date'):args.get('to_value_date')
+        compatible_date(tzaware, __from_value_date__):
+        compatible_date(tzaware, __to_value_date__)
     ]
     if prune:
         ts = ts[:-prune]
