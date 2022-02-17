@@ -10,7 +10,6 @@ from numbers import Number
 
 import pandas as pd
 from psyl.lisp import (
-    buildargs,
     Env,
     evaluate,
     expreval,
@@ -76,34 +75,6 @@ def inject_toplevel_bindings(tree, qargs):
     return top
 
 
-_ARGFUNC = {
-    'from_value_date': 'max',
-    'to_value_date': 'min',
-    'revision_date': None
-}
-
-
-def inject_scoped_values(valmap, tree):
-    _posargs, kwargs = buildargs(tree[1:])
-    qargs = {}
-    for treeparam, targetparam in valmap.items():
-        if treeparam in kwargs:
-            qargs[targetparam] = kwargs[treeparam]
-
-    if not qargs:
-        # nothing to transform
-        return tree
-
-    top = [Symbol('let')]
-    for name, value in qargs.items():
-        func = _ARGFUNC[name]
-        top += [Symbol(name),
-                [Symbol(func), Symbol(name), value] if func else value]
-
-    top.append(tree)
-    return top
-
-
 def expanded(tsh, cn, tree, stopnames=(), scoped=None):
     # handle scoped parameter (internal memo)
     scoped = set() if scoped is None else scoped
@@ -116,8 +87,8 @@ def expanded(tsh, cn, tree, stopnames=(), scoped=None):
             # we need to avoid an infinite recursion
             # as the new tree contains the old ...
             scoped.add(id(tree))
-            return inject_scoped_values(
-                ARGSCOPES[op],
+            rewriter = ARGSCOPES[op]
+            return rewriter(
                 expanded(tsh, cn, tree, stopnames, scoped)
             )
 

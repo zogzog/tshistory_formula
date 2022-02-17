@@ -8,6 +8,10 @@ import pandas as pd
 import pytz
 from dateutil.relativedelta import relativedelta
 
+from psyl.lisp import (
+    buildargs,
+    Symbol
+)
 from tshistory.util import (
     compatible_date,
     empty_series,
@@ -599,11 +603,37 @@ def series_clip(series: pd.Series,
     return series
 
 
+def slice_transform(tree):
+    _posargs, kwargs = buildargs(tree[1:])
+    qargs = {}
+    for treeparam, targetparam in (
+            ('fromdate', 'from_value_date'),
+            ('todate', 'to_value_date')
+    ):
+        if treeparam in kwargs:
+            qargs[targetparam] = kwargs[treeparam]
+
+    if not qargs:
+        # nothing to transform
+        return tree
+
+    argfunc = {
+        'from_value_date': 'max',
+        'to_value_date': 'min',
+        'revision_date': None
+    }
+    top = [Symbol('let')]
+    for name, value in qargs.items():
+        func = argfunc[name]
+        top += [Symbol(name),
+                [Symbol(func), Symbol(name), value] if func else value]
+
+    top.append(tree)
+    return top
+
+
 @func('slice')
-@argscope('slice', {
-    'fromdate': 'from_value_date',
-    'todate': 'to_value_date'
-})
+@argscope('slice', slice_transform)
 def slice(series: pd.Series,
           fromdate: Optional[pd.Timestamp]=None,
           todate: Optional[pd.Timestamp]=None) -> pd.Series:
