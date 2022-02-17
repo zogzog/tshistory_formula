@@ -182,10 +182,10 @@ def migrate_to_groups(db_uri, namespace='tsh'):
         cn.execute(sql)
 
 
-@click.command(name='rename-minmax-operators')
+@click.command(name='rename-operators')
 @click.argument('db-uri')
 @click.option('--namespace', default='tsh')
-def rename_minmax_operators(db_uri, namespace='tsh'):
+def rename_operators(db_uri, namespace='tsh'):
     engine = create_engine(find_dburi(db_uri))
     tsh = timeseries(namespace)
 
@@ -195,6 +195,7 @@ def rename_minmax_operators(db_uri, namespace='tsh'):
         tree0 = parse(text)
         tree1 = rename_operator(tree0, 'min', 'row-min')
         tree2 = rename_operator(tree1, 'max', 'row-max')
+        tree3 = rename_operator(tree2, 'timedelta', 'shifted')
         tsh.register_formula(
             engine,
             name,

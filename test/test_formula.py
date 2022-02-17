@@ -822,8 +822,8 @@ def test_new_func(engine, tsh):
 
 def test_ifunc(engine, tsh):
 
-    @func('shifted', auto=True)
-    def shifted(__interpreter__, name: str, days: int=0) -> pd.Series:
+    @func('shifter', auto=True)
+    def shifter(__interpreter__, name: str, days: int=0) -> pd.Series:
         args = __interpreter__.getargs.copy()
         fromdate = args.get('from_value_date')
         todate = args.get('to_value_date')
@@ -834,14 +834,14 @@ def test_ifunc(engine, tsh):
 
         return __interpreter__.get(name, args)
 
-    @metadata('shifted')
-    def shifted_metadata(cn, tsh, stree):
+    @metadata('shifter')
+    def shifter_metadata(cn, tsh, stree):
         return {
             stree[1]: tsh.metadata(cn, stree[1])
         }
 
-    @finder('shifted')
-    def shifted_finder(cn, tsh, stree):
+    @finder('shifter')
+    def shifter_finder(cn, tsh, stree):
         return {
             stree[1]: stree
         }
@@ -858,7 +858,7 @@ def test_ifunc(engine, tsh):
     tsh.register_formula(
         engine,
         'shifting',
-        '(+ 0 (shifted "shiftme" #:days -1))'
+        '(+ 0 (shifter "shiftme" #:days -1))'
     )
 
     ts = tsh.get(engine, 'shifting')
@@ -923,7 +923,7 @@ insertion_date             value_date
 """, hist)
 
     # cleanup
-    FUNCS.pop('shifted')
+    FUNCS.pop('shifter')
 
 
 def test_newop_expansion(engine, tsh):

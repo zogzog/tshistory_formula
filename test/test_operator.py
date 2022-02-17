@@ -914,14 +914,14 @@ def test_date(engine, tsh):
     assert c == pd.Timestamp('2020-01-01 06:42:30+0000', tz='UTC')
 
 
-def test_timedelta(engine, tsh):
-    e1 = '(timedelta (date "2020-1-1"))'  # null
-    e2 = '(timedelta (date "2020-1-1") #:years 1)'
-    e3 = '(timedelta (date "2020-1-1") #:months 1) '
-    e4 = '(timedelta (date "2020-1-1") #:weeks 1)'
-    e5 = '(timedelta (date "2020-1-1") #:days 1)'
-    e6 = '(timedelta (date "2020-1-1") #:hours 1)'
-    e7 = '(timedelta (date "2020-1-1") #:minutes 1)'
+def test_shifted(engine, tsh):
+    e1 = '(shifted (date "2020-1-1"))'  # null
+    e2 = '(shifted (date "2020-1-1") #:years 1)'
+    e3 = '(shifted (date "2020-1-1") #:months 1) '
+    e4 = '(shifted (date "2020-1-1") #:weeks 1)'
+    e5 = '(shifted (date "2020-1-1") #:days 1)'
+    e6 = '(shifted (date "2020-1-1") #:hours 1)'
+    e7 = '(shifted (date "2020-1-1") #:minutes 1)'
 
     i = Interpreter(engine, tsh, {})
     a = lisp.evaluate(e1, i.env)
@@ -990,7 +990,7 @@ def test_more_today(engine, tsh):
         'sliced-base',
         '(slice (series "today-base") '
         '       #:fromdate (today)'
-        '       #:todate (timedelta (today) #:days 10))'
+        '       #:todate (shifted (today) #:days 10))'
     )
 
     # last version: as of today + 1 day

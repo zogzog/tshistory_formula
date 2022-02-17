@@ -40,7 +40,7 @@ def test_dtypes():
 
 
 def test_function_types():
-    f = FUNCS['timedelta']
+    f = FUNCS['shifted']
     types = function_types(f)
     assert types == {
         'date': 'Timestamp',
@@ -123,7 +123,7 @@ def test_operators_types():
     opnames = set(
         ('*', '+', '/', 'add', 'div', 'row-max', 'row-min', 'mul',
          'clip', 'priority', 'row-mean', 'series', 'slice', 'std',
-         'timedelta', 'today')
+         'shifted', 'today')
     )
     types = {
         name: ftype
@@ -159,6 +159,14 @@ def test_operators_types():
         'row-mean': {'return': 'Series',
                      'serieslist': 'Series',
                      'skipna': 'Default[bool=True]'},
+        'shifted': {'date': 'Timestamp',
+                    'days': 'Default[int=0]',
+                    'hours': 'Default[int=0]',
+                    'minutes': 'Default[int=0]',
+                    'months': 'Default[int=0]',
+                    'return': 'Timestamp',
+                    'weeks': 'Default[int=0]',
+                    'years': 'Default[int=0]'},
         'series': {'fill': 'Default[Union[str, Number]=None]',
                    'name': 'seriesname',
                    'prune': 'Default[int=None]',
@@ -171,14 +179,6 @@ def test_operators_types():
         'std': {'return': 'Series',
                 'serieslist': 'Series',
                 'skipna': 'Default[bool=True]'},
-        'timedelta': {'date': 'Timestamp',
-                      'days': 'Default[int=0]',
-                      'hours': 'Default[int=0]',
-                      'minutes': 'Default[int=0]',
-                      'months': 'Default[int=0]',
-                      'return': 'Timestamp',
-                      'weeks': 'Default[int=0]',
-                      'years': 'Default[int=0]'},
         'today': {'naive': 'Default[bool=False]',
                   'return': 'Timestamp',
                   'tz': 'Default[str=None]'}
