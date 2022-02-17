@@ -2,6 +2,8 @@ from datetime import timedelta, datetime
 from typing import Union, Optional, Tuple
 from numbers import Number
 import calendar
+from functools import reduce
+import operator
 
 import numpy as np
 import pandas as pd
@@ -271,6 +273,8 @@ def shifted(date: pd.Timestamp,
     Example: `(shifted (date "2020-1-1") #:weeks 1 #:hours 2)`
 
     """
+    if date is None:
+        return None
     return date + relativedelta(
         years=years,
         months=months,
@@ -822,7 +826,31 @@ def cumsum(series: pd.Series) -> pd.Series:
     return series.cumsum()
 
 
+def time_shifted_transform(tree):
+    _posargs, kwargs = buildargs(tree[1:])
+
+    def negate(items):
+        return [
+            -x if isinstance(x, (int, float)) else x
+            for x in items
+        ]
+
+    top = [Symbol('let')]
+    for name in ('from_value_date', 'to_value_date'):
+        top += [
+            Symbol(name),
+            [Symbol('shifted'), Symbol(name)] +
+            negate(
+                reduce(operator.add, kwargs.items())
+            )
+        ]
+
+    top.append(tree)
+    return top
+
+
 @func('time-shifted')
+@argscope('time-shifted', time_shifted_transform)
 def time_shifted(series: pd.Series,
                  weeks: int=0,
                  days: int=0,
