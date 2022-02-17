@@ -1143,7 +1143,7 @@ def test_cumsum(engine, tsh):
 """, s1)
 
 
-def test_shift(engine, tsh):
+def test_time_shifted(engine, tsh):
     series = pd.Series(
         [1, 2, 3],
         index=pd.date_range(utcdt(2020, 1, 1), periods=3, freq='D')
@@ -1159,7 +1159,7 @@ def test_shift(engine, tsh):
     tsh.register_formula(
         engine,
         'test-shift',
-        '(shift (series "shifted") #:days 2 #:hours 7)'
+        '(time-shifted (series "shifted") #:days 2 #:hours 7)'
     )
 
     s1 = tsh.get(engine, 'test-shift')

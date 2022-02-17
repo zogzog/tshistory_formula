@@ -196,6 +196,7 @@ def rename_operators(db_uri, namespace='tsh'):
         tree1 = rename_operator(tree0, 'min', 'row-min')
         tree2 = rename_operator(tree1, 'max', 'row-max')
         tree3 = rename_operator(tree2, 'timedelta', 'shifted')
+        tree4 = rename_operator(tree3, 'shift', 'time-shifted')
         tsh.register_formula(
             engine,
             name,

@@ -777,19 +777,19 @@ def cumsum(series: pd.Series) -> pd.Series:
     return series.cumsum()
 
 
-@func('shift')
-def shift(series: pd.Series,
-          weeks: int=0,
-          days: int=0,
-          hours: int=0,
-          minutes: int=0) -> pd.Series:
+@func('time-shifted')
+def time_shifted(series: pd.Series,
+                 weeks: int=0,
+                 days: int=0,
+                 hours: int=0,
+                 minutes: int=0) -> pd.Series:
     """
     Shift the dates of a series.
 
     Takes the following keywords: `weeks`, `days`, `hours`, with
     positive or negative values.
 
-    Example `(shift (series "shifted") #:days 2 #:hours 7)`
+    Example `(time-shifted (series "shifted") #:days 2 #:hours 7)`
 
     """
     # note: relativedelta is unfit there as it cannot be
