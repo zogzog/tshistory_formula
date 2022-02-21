@@ -1078,7 +1078,7 @@ class timeseries(basets):
                 allrevs += self.insertion_dates(cn, name)
             elif operator_name in GAUTO:
                 idates_func = GIDATES[operator_name]
-                allrevs += idates_func()
+                allrevs += idates_func(cn, self, tree)
 
         return sorted(set(allrevs))
 

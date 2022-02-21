@@ -2224,7 +2224,7 @@ def test_groups_autotrophic_history(engine, tsh):
         return {'gauto-operator': tree}
 
     @ginsertion_dates('gauto-operator')
-    def auto_insertion_dates():
+    def auto_insertion_dates(cn, tsh, tree):
         return [utcdt(2022, 2, 1), utcdt(2022, 2, 2)]
 
     tsh.register_group_formula(
