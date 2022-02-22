@@ -2175,6 +2175,20 @@ def test_group_and_series_formula_history(engine, tsh):
         pd.Timestamp('2022-01-05 00:00:00+0000', tz='UTC'),
         pd.Timestamp('2022-01-05 02:00:00+0000', tz='UTC'),
     ] == idates
+    # the idate at 00 clcok came from the group, at 02:00 came from the series
+
+    idates = tsh.group_insertion_dates(
+        engine,
+        'history_mixte',
+        from_insertion_date=utcdt(2022, 1, 2),
+        to_insertion_date=utcdt(2022, 1, 3)
+    )
+
+    assert [
+        pd.Timestamp('2022-01-02 00:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-01-02 02:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-01-03 00:00:00+0000', tz='UTC'),
+    ] == idates
 
     hist =  tsh.group_history(engine, 'history_mixte',
                               from_insertion_date=utcdt(2022, 1, 2),

@@ -1057,11 +1057,11 @@ class timeseries(basets):
         return seriestree
 
     @tx
-    def group_insertion_dates(self, cn, name):
+    def group_insertion_dates(self, cn, name, **bounds):
         formula = self.group_formula(cn, name)
         # primaries
         if not formula:
-            return super().group_insertion_dates(cn, name)
+            return super().group_insertion_dates(cn, name, **bounds)
 
         tree = parse(formula)
         groups_and_series = self.find_groups_and_series(cn, tree)
@@ -1071,11 +1071,11 @@ class timeseries(basets):
             if operator_name == 'group':
                 if not self.group_exists(cn, name):
                     continue
-                allrevs += self.group_insertion_dates(cn, name)
+                allrevs += self.group_insertion_dates(cn, name, **bounds)
             elif operator_name == 'series':
                 if not self.exists(cn, name):
                     continue
-                allrevs += self.insertion_dates(cn, name)
+                allrevs += self.insertion_dates(cn, name, **bounds)
             elif operator_name in GAUTO:
                 idates_func = GIDATES[operator_name]
                 allrevs += idates_func(cn, self, tree)
@@ -1088,21 +1088,12 @@ class timeseries(basets):
                       to_value_date=None,
                       from_insertion_date=None,
                       to_insertion_date=None):
-        idates = self.group_insertion_dates(cn, name)
-        if from_insertion_date:
-            idates = [
-                id for id in idates
-                if id >= from_insertion_date
-            ]
-            if not len(idates):
-                return {}
-        if to_insertion_date:
-            idates = [
-                id for id in idates
-                if id <= to_insertion_date
-            ]
-            if not len(idates):
-                return {}
+        idates = self.group_insertion_dates(
+            cn,
+            name,
+            from_insertion_date=from_insertion_date,
+            to_insertion_date=to_insertion_date
+        )
         history = {}
         for idate in idates:
             history[idate] = self.group_get(
