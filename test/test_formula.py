@@ -2238,8 +2238,19 @@ def test_groups_autotrophic_history(engine, tsh):
         return {'gauto-operator': tree}
 
     @ginsertion_dates('gauto-operator')
-    def auto_insertion_dates(cn, tsh, tree):
-        return [utcdt(2022, 2, 1), utcdt(2022, 2, 2)]
+    def auto_insertion_dates(
+            cn,
+            tsh,
+            tree,
+            from_insertion_date=None,
+            to_insertion_date=None,
+    ):
+        idates = [utcdt(2022, 2, 1), utcdt(2022, 2, 2)]
+        if from_insertion_date:
+            idates = [idate for idate in idates if idate >= from_insertion_date ]
+        if to_insertion_date:
+            idates = [idate for idate in idates if idate <= to_insertion_date ]
+        return idates
 
     tsh.register_group_formula(
         engine,
@@ -2285,6 +2296,19 @@ def test_groups_autotrophic_history(engine, tsh):
     ] == idates
     # the idates at 3 o'ckock came from the primary
     # the ones at 00h came from the autotrophic
+
+    idates = tsh.group_insertion_dates(
+        engine,
+        'higher_level',
+        from_insertion_date=utcdt(2022, 2, 2),
+        to_insertion_date=utcdt(2022, 2, 4)
+    )
+
+    assert [
+        pd.Timestamp('2022-02-02 00:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-02-02 03:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-02-03 03:00:00+0000', tz='UTC'),
+    ] == idates
 
     hist = tsh.group_history(engine, 'higher_level',
                            from_insertion_date=utcdt(2022, 2, 2),
