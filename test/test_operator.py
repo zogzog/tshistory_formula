@@ -201,6 +201,42 @@ def test_naive_registration(engine, tsh):
     )
 
 
+def test_naive_tz_bounds(engine, tsh):
+    ts_hourly = pd.Series(
+        range(24 * 3 + 1),
+        index=pd.date_range(start=utcdt(2022, 2, 1),
+                            end=utcdt(2022, 2, 4),
+                            freq='H')
+    )
+    tsh.update(engine, ts_hourly, 'hourly-utc', 'test')
+
+    # building a series localized in EST ->
+    # the offset produces a more clear false ouput
+    tsh.register_formula(
+        engine,
+        'daily-naive',
+        '(resample (naive (series "hourly-utc") "EST") "D")'
+    )
+
+    ts = tsh.get(
+        engine,
+        'daily-naive',
+        from_value_date=dt(2022, 2, 2),
+        to_value_date=dt(2022, 2, 3)
+    )
+
+    # the results are outside the request bounds
+    assert_df("""
+2022-02-01    26.0
+2022-02-02    38.5
+""", ts)
+    # explanation:
+    # The bounds are interpreted as tz-aware utc when querying the underlying hourly series
+    # hence the data are dated from 2022-02-02 at 00h UT to 2022-02-03 at 00h UT
+    # The naive operator then localize the data that became 2022-02-01
+    # at 19h to 2022-02-02 at 19h
+
+
 def test_add(engine, tsh):
     tsh.register_formula(
         engine,
