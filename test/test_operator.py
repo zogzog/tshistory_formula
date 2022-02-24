@@ -201,7 +201,7 @@ def test_naive_registration(engine, tsh):
     )
 
 
-def test_naive_tz_bounds(engine, tsh):
+def test_naive_tz_boundaries(engine, tsh):
     ts_hourly = pd.Series(
         range(24 * 3 + 1),
         index=pd.date_range(start=utcdt(2022, 2, 1),
@@ -214,27 +214,106 @@ def test_naive_tz_bounds(engine, tsh):
     # the offset produces a more clear false ouput
     tsh.register_formula(
         engine,
-        'daily-naive',
+        'resampled-daily-naive',
         '(resample (naive (series "hourly-utc") "EST") "D")'
     )
 
     ts = tsh.get(
         engine,
-        'daily-naive',
+        'resampled-daily-naive',
         from_value_date=dt(2022, 2, 2),
         to_value_date=dt(2022, 2, 3)
     )
 
-    # the results are outside the request bounds
+    # the results are outside the request boundaries
     assert_df("""
 2022-02-01    26.0
 2022-02-02    38.5
 """, ts)
     # explanation:
-    # The bounds are interpreted as tz-aware utc when querying the underlying hourly series
+    # The boundaries are interpreted as tz-aware utc when querying the underlying hourly series
     # hence the data are dated from 2022-02-02 at 00h UT to 2022-02-03 at 00h UT
     # The naive operator then localize the data that became 2022-02-01
     # at 19h to 2022-02-02 at 19h
+
+    tsh.register_formula(
+        engine,
+        'naive-boundaries',
+        '(naive (series "hourly-utc") "EST")'
+    )
+    ts = tsh.get(
+        engine,
+        'naive-boundaries',
+        from_value_date=dt(2022, 2, 2),
+        to_value_date=dt(2022, 2, 3)
+    )
+
+    # the results are outside the request boundaries
+    # because the naive date has been interpreted as UTC
+    assert_df("""
+2022-02-01 19:00:00    24.0
+2022-02-01 20:00:00    25.0
+2022-02-01 21:00:00    26.0
+2022-02-01 22:00:00    27.0
+2022-02-01 23:00:00    28.0
+2022-02-02 00:00:00    29.0
+2022-02-02 01:00:00    30.0
+2022-02-02 02:00:00    31.0
+2022-02-02 03:00:00    32.0
+2022-02-02 04:00:00    33.0
+2022-02-02 05:00:00    34.0
+2022-02-02 06:00:00    35.0
+2022-02-02 07:00:00    36.0
+2022-02-02 08:00:00    37.0
+2022-02-02 09:00:00    38.0
+2022-02-02 10:00:00    39.0
+2022-02-02 11:00:00    40.0
+2022-02-02 12:00:00    41.0
+2022-02-02 13:00:00    42.0
+2022-02-02 14:00:00    43.0
+2022-02-02 15:00:00    44.0
+2022-02-02 16:00:00    45.0
+2022-02-02 17:00:00    46.0
+2022-02-02 18:00:00    47.0
+2022-02-02 19:00:00    48.0
+""", ts)
+
+    ts = tsh.get(
+        engine,
+        'naive-boundaries',
+        from_value_date=pd.Timestamp('2022-2-2', tz='EST'),
+        to_value_date=pd.Timestamp('2022-2-3', tz='EST')
+    )
+    # the results are perfectly within the request boundaries
+    # because we have provided a matching from/to query (in the
+    # right timezone)
+    assert_df("""
+2022-02-02 00:00:00    29.0
+2022-02-02 01:00:00    30.0
+2022-02-02 02:00:00    31.0
+2022-02-02 03:00:00    32.0
+2022-02-02 04:00:00    33.0
+2022-02-02 05:00:00    34.0
+2022-02-02 06:00:00    35.0
+2022-02-02 07:00:00    36.0
+2022-02-02 08:00:00    37.0
+2022-02-02 09:00:00    38.0
+2022-02-02 10:00:00    39.0
+2022-02-02 11:00:00    40.0
+2022-02-02 12:00:00    41.0
+2022-02-02 13:00:00    42.0
+2022-02-02 14:00:00    43.0
+2022-02-02 15:00:00    44.0
+2022-02-02 16:00:00    45.0
+2022-02-02 17:00:00    46.0
+2022-02-02 18:00:00    47.0
+2022-02-02 19:00:00    48.0
+2022-02-02 20:00:00    49.0
+2022-02-02 21:00:00    50.0
+2022-02-02 22:00:00    51.0
+2022-02-02 23:00:00    52.0
+2022-02-03 00:00:00    53.0
+""", ts)
 
 
 def test_add(engine, tsh):
