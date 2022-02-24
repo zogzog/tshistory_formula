@@ -976,13 +976,13 @@ def test_newop_expansion(engine, tsh):
         engine,
         'combinator',
         revision_date=pd.Timestamp('2022-1-1'),
-        to_value_date=pd.Timestamp('2030-1-1')
+        to_value_date=pd.Timestamp('2030-1-1', tz='UTC')
     )
     assert lisp.parse(exp) == [
         'let',
-        'revision_date', ['date', '2022-01-01T00:00:00'],
+        'revision_date', ['date', '2022-01-01T00:00:00', None],
         'from_value_date', None,
-        'to_value_date', ['date', '2030-01-01T00:00:00'],
+        'to_value_date', ['date', '2030-01-01T00:00:00+00:00', 'UTC'],
         ['combine', 'comb-a', 'comb-b']
     ]
 

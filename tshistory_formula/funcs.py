@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Union, Optional, Tuple
 from numbers import Number
 import calendar
@@ -71,14 +71,35 @@ def options(series: pd.Series,
     return series
 
 
+def _normalize_dates(dates):
+    if (all(d.tzinfo is None for d in dates) or
+        all(d.tzinfo is not None for d in dates)):
+        return dates
+
+    for d in dates:
+        if d.tzinfo:
+            # we know there must be one
+            tzone = d.tzinfo.zone
+    return [
+        d.tz_localize(tzone) if not d.tzinfo else d
+        for d in dates
+    ]
+
+
 @func('min')
 def scalar_min(*args: Number) -> Number:
-    return min(filter(None, args))
+    args = list(filter(None, args))
+    if args and  isinstance(args[0], datetime):
+        args = _normalize_dates(args)
+    return min(args)
 
 
 @func('max')
 def scalar_max(*args: Number) -> Number:
-    return max(filter(None, args))
+    args = list(filter(None, args))
+    if args and  isinstance(args[0], datetime):
+        args = _normalize_dates(args)
+    return max(args)
 
 
 @func('series', auto=True)
@@ -167,13 +188,37 @@ def series_finder(cn, tsh, stree):
     return {name: stree}
 
 
+@func('tzaware-stamp')
+def tzaware_date(dt: pd.Timestamp, tzone: str) -> pd.Timestamp:
+    if dt is None:
+        return
+    if dt.tzinfo is None:
+        return pd.Timestamp(dt, tz=tzone)
+    # not naive, we don't touch it
+    return dt
+
+
 def dedupe(series):
     if series.index.duplicated().any():
         return series.groupby(series.index).mean()
     return series
 
 
+def naive_transform(tree):
+    posargs, _kwargs = buildargs(tree[1:])
+    tzone = posargs[-1]
+
+    top = [Symbol('let')]
+    for name in ('from_value_date', 'to_value_date'):
+        top += [Symbol(name),
+                [Symbol('tzaware-stamp'), Symbol(name), tzone]]
+
+    top.append(tree)
+    return top
+
+
 @func('naive')
+@argscope('naive', naive_transform)
 def naive(series: pd.Series, tzone: str) -> pd.Series:
     """
     Allow demoting a series from a tz-aware index to a tz-naive index.

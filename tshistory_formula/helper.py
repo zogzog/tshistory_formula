@@ -68,8 +68,14 @@ def inject_toplevel_bindings(tree, qargs):
     top = [Symbol('let')]
     for attr in ('revision_date', 'from_value_date', 'to_value_date'):
         val = qargs.get(attr)
-        top += [Symbol(attr),
-                [Symbol('date'), val.isoformat()] if val else Symbol('nil')]
+        # naive must remain naive
+        # to allow the naive operator to do its transform
+        tzone = val.tzinfo.zone if val and val.tzinfo else Symbol('nil')
+        top += [
+            Symbol(attr),
+            [Symbol('date'), val.isoformat(), tzone]
+            if val else Symbol('nil')
+        ]
 
     top.append(tree)
     return top
