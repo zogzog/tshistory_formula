@@ -190,6 +190,26 @@ def series_finder(cn, tsh, stree):
     return {name: stree}
 
 
+def asof_transform(tree):
+    posargs, _kwargs = buildargs(tree[1:])
+    return [
+        Symbol('let'), Symbol('revision_date'), posargs[0], tree
+    ]
+
+
+@func('asof')
+@argscope('asof', asof_transform)
+def asof(revision_date: pd.Timestamp,
+         series: pd.Series) -> pd.Series:
+    """
+    Fetch the series in the asof scope with the specified revision date.
+
+    Example: `(asof (shifted (today) #:days -1) (series "i-have-many-versions"))`
+
+    """
+    return series
+
+
 @func('tzaware-stamp')
 def tzaware_date(dt: pd.Timestamp, tzone: str) -> pd.Timestamp:
     if dt is None:

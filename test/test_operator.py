@@ -1340,6 +1340,77 @@ def test_time_shifted(engine, tsh):
 """, s1)
 
 
+def test_asof(engine, tsh):
+    for v in range(1, 3):
+        idate = utcdt(2022, 1, v)
+        series = pd.Series(
+            [v] * 5,
+            index=pd.date_range(
+                utcdt(2022, 1, 1),
+                periods=5,
+                freq='D'
+            )
+        )
+
+        tsh.update(
+            engine,
+            series,
+            'asof-base',
+            'Babar',
+            insertion_date=idate
+        )
+
+    tsh.register_formula(
+        engine,
+        'test-asof',
+        '(asof (shifted (today) #:days -1) (series "asof-base"))'
+    )
+
+    exp = tsh.expanded_formula(
+        engine,
+        'test-asof'
+    )
+    assert exp == (
+        '(let revision_date nil from_value_date nil to_value_date nil'
+        ' (let revision_date (shifted (today) #:days -1)'
+        ' (asof (shifted (today) #:days -1)'
+        ' (series "asof-base"))))'
+    )
+
+    s1 = tsh.get(
+        engine,
+        'test-asof',
+        revision_date=utcdt(2022, 1, 2)
+    )
+    assert_df("""
+2022-01-01 00:00:00+00:00    1.0
+2022-01-02 00:00:00+00:00    1.0
+2022-01-03 00:00:00+00:00    1.0
+2022-01-04 00:00:00+00:00    1.0
+2022-01-05 00:00:00+00:00    1.0
+""", s1)
+
+    s2 = tsh.get(
+        engine,
+        'test-asof',
+        revision_date=utcdt(2022, 1, 1)
+    )
+    assert not len(s2)
+
+    s3 = tsh.get(
+        engine,
+        'test-asof',
+        revision_date=utcdt(2022, 1, 3)
+    )
+    assert_df("""
+2022-01-01 00:00:00+00:00    2.0
+2022-01-02 00:00:00+00:00    2.0
+2022-01-03 00:00:00+00:00    2.0
+2022-01-04 00:00:00+00:00    2.0
+2022-01-05 00:00:00+00:00    2.0
+""", s3)
+
+
 def test_rolling(engine, tsh):
     series = pd.Series(
         [1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5],
