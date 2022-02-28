@@ -499,6 +499,8 @@ class timeseries(basets):
                 **kw
             )
 
+        # prepare the history interpreter using the histories
+        # collected so far
         hi = interpreter.HistoryInterpreter(
             name, cn, self, {
                 'from_value_date': from_value_date,
@@ -508,6 +510,9 @@ class timeseries(basets):
         )
 
         # delegate work for the autotrophic operator histories
+        # this was not done in the previous step because
+        # auto operators have their own full-blown protocol to deal
+        # with histories
         self._precompute_auto_histories(
             cn, hi, tree,
             from_insertion_date=from_insertion_date,
@@ -523,6 +528,8 @@ class timeseries(basets):
             for hist in histmap.values()
             for idate in hist
         })
+
+        # build the final history dict
         hist = {
             idate: hi.evaluate(tree, idate, name)
             for idate in idates
