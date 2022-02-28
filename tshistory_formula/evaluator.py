@@ -118,4 +118,4 @@ def pevaluate(expr, env, asyncfuncs=(), concurrency=16, hist=False):
                 val = val.result()
         return val
 
-    return pexpreval(expr, env, asyncfuncs, hist)
+    return pexpreval(expr, env, asyncfuncs, None, hist)
