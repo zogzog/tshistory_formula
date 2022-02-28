@@ -391,7 +391,7 @@ class timeseries(basets):
                             base.update(hist)
                             histmap[sname] = base
 
-        i = interpreter.HistoryInterpreter(
+        hi = interpreter.HistoryInterpreter(
             name, cn, self, {
                 'from_value_date': from_value_date,
                 'to_value_date': to_value_date
@@ -415,8 +415,8 @@ class timeseries(basets):
                     **kw
                 ) or {}
                 cname = helper.name_of_expr(callsite)
-                i.namecache[serialize(callsite)] = cname
-                i.histories.update({
+                hi.namecache[serialize(callsite)] = cname
+                hi.histories.update({
                     cname: chist
                 })
 
@@ -426,7 +426,7 @@ class timeseries(basets):
             for idate in hist
         })
         h = {
-            idate: i.evaluate(tree, idate, name)
+            idate: hi.evaluate(tree, idate, name)
             for idate in idates
         }
 
