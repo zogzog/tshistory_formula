@@ -350,6 +350,63 @@ class timeseries(basets):
                 cname: chist
             })
 
+
+    def _complete_histories_start(
+            self, cn, histmap, tree,
+            from_value_date=None,
+            to_value_date=None,
+            **kw):
+        """
+        Complete the potentially missing entries of the collected histories.
+
+        Takes an `history map` and returns an `history map` with
+        possibly more entries.
+
+        Indeed, when `from_insertion_date` is provided to .history, we
+        can have this situation:
+
+        #    ^  h0      h1
+        #    |
+        #  i2| xxx     xxx
+        #  i1| xxx
+        #  i0| xxx     xxx
+
+        Here, we have three insertion dates (i0, i1, i2), but while
+        history of the first series `h0` has values for all the
+        idates, the history of the second series `h1` has a gap.
+
+        If we get asked for the formula history starting from `i1`, we
+        actually want `h1` to contain something for `i1` also, and
+        only by digging further in the past can we provide it.
+
+        """
+        mins = [
+            min(hist.keys())
+            for hist in histmap.values()
+            if len(hist)
+        ]
+        if not len(mins):
+            return histmap
+
+        mindate = min(mins)
+        for name, hist in histmap.items():
+            if mindate not in hist:
+                ts_mindate = self.get(
+                    cn,
+                    name,
+                    revision_date=mindate,
+                    from_value_date=from_value_date,
+                    to_value_date=to_value_date,
+                    **kw
+                )
+                if ts_mindate is not None and len(ts_mindate):
+                    # the history must be ordered by key
+                    base = {mindate: ts_mindate}
+                    base.update(hist)
+                    histmap[name] = base
+
+        return histmap
+
     @tx
     def history(self, cn, name,
                 from_insertion_date=None,
@@ -389,7 +446,8 @@ class timeseries(basets):
         tree = self._expanded_formula(cn, formula)
         series = self.find_series(cn, tree)
 
-        # normal history
+        # normal history: compute the union of the histories
+        # of all underlying series
         histmap = {
             name: self.history(
                 cn, name,
@@ -404,29 +462,13 @@ class timeseries(basets):
 
         # complete the history with a value for the first idate
         # (we might be missing this because of the query from_insertion_date)
-        if histmap:
-            mins = [
-                min(hist.keys())
-                for hist in histmap.values()
-                if len(hist)
-            ]
-            if len(mins):
-                mindate = min(mins)
-                for sname, hist in histmap.items():
-                    if mindate not in hist:
-                        ts_mindate = self.get(
-                            cn,
-                            sname,
-                            revision_date=mindate,
-                            from_value_date=from_value_date,
-                            to_value_date=to_value_date,
-                            **kw
-                        )
-                        if ts_mindate is not None and len(ts_mindate):
-                            # the history must be ordered by key
-                            base = {mindate: ts_mindate}
-                            base.update(hist)
-                            histmap[sname] = base
+        if histmap and from_insertion_date:
+            histmap = self._complete_histories_start(
+                cn, histmap, tree,
+                from_value_date=from_value_date,
+                to_value_date=to_value_date,
+                **kw
+            )
 
         hi = interpreter.HistoryInterpreter(
             name, cn, self, {
