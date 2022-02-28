@@ -292,6 +292,26 @@ class timeseries(basets):
             for call in self.find_callsites(cn, sname, tree)
         ]
 
+    def _auto_history(self, cn, tree,
+                      from_insertion_date=None,
+                      to_insertion_date=None,
+                      from_value_date=None,
+                      to_value_date=None,
+                      diffmode=False,
+                      _keep_nans=False,
+                      **kw):
+        assert tree
+        i = interpreter.OperatorHistory(
+            cn, self, {
+                'from_value_date': from_value_date,
+                'to_value_date': to_value_date,
+                'from_insertion_date': from_insertion_date,
+                'to_insertion_date': to_insertion_date,
+                'diffmode': diffmode,
+                '_keep_nans': _keep_nans
+            }
+        )
+        return i.evaluate_history(tree)
 
     @tx
     def history(self, cn, name,
@@ -301,27 +321,9 @@ class timeseries(basets):
                 to_value_date=None,
                 diffmode=False,
                 _keep_nans=False,
-                _tree=None,
                 **kw):
 
         if self.type(cn, name) != 'formula':
-
-            # autotrophic operator ?
-            if name is None:
-                assert _tree
-                i = interpreter.OperatorHistory(
-                    cn, self, {
-                        'from_value_date': from_value_date,
-                        'to_value_date': to_value_date,
-                        'from_insertion_date': from_insertion_date,
-                        'to_insertion_date': to_insertion_date,
-                        'diffmode': diffmode,
-                        '_keep_nans': _keep_nans
-                    }
-                )
-                return i.evaluate_history(_tree)
-
-            # normal series ?
             hist = super().history(
                 cn, name,
                 from_insertion_date=from_insertion_date,
@@ -403,14 +405,13 @@ class timeseries(basets):
         if callsites:
             # autotrophic history
             for idx, callsite in enumerate(callsites):
-                chist = self.history(
+                chist = self._auto_history(
                     cn,
-                    None, # just mark that we won't work "by name" there
+                    callsite,
                     from_insertion_date=from_insertion_date,
                     to_insertion_date=to_insertion_date,
                     from_value_date=from_value_date,
                     to_value_date=to_value_date,
-                    _tree=callsite,
                     **kw
                 ) or {}
                 cname = helper.name_of_expr(callsite)
@@ -511,12 +512,11 @@ class timeseries(basets):
         for site in self._custom_history_sites(cn, tree):
             if site in isites:
                 continue  # we're already good
-            hist = self.history(
+            hist = self._auto_history(
                 cn,
-                None, # just mark that we won't work "by name" there
+                site,
                 from_insertion_date,
                 to_insertion_date,
-                _tree=site
             )
             if hist:
                 allrevs += list(hist.keys())
