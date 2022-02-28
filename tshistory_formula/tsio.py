@@ -313,6 +313,43 @@ class timeseries(basets):
         )
         return i.evaluate_history(tree)
 
+    def _precompute_auto_histories(
+            self, cn, hi, basetree,
+            from_insertion_date=None,
+            to_insertion_date=None,
+            from_value_date=None,
+            to_value_date=None,
+            diffmode=False,
+            _keep_nans=False,
+            **kw):
+        """
+        Path of precomputation of the autotrophic operators histories.
+
+        Two notable aspects there:
+        * the embedded autotrophic operators are not associated with a
+          name (that helps anchoring the results), so we must forge
+          one
+        * we store the final histories into the .histories of the
+          history interpreter (pure side effect)
+
+        """
+        trees = self._custom_history_sites(cn, basetree)
+        for idx, tree in enumerate(trees):
+            chist = self._auto_history(
+                cn,
+                tree,
+                from_insertion_date=from_insertion_date,
+                to_insertion_date=to_insertion_date,
+                from_value_date=from_value_date,
+                to_value_date=to_value_date,
+                **kw
+            ) or {}
+            cname = helper.name_of_expr(tree)
+            hi.namecache[serialize(tree)] = cname
+            hi.histories.update({
+                cname: chist
+            })
+
     @tx
     def history(self, cn, name,
                 from_insertion_date=None,
@@ -399,26 +436,15 @@ class timeseries(basets):
             histories=histmap
         )
 
-        # prepare work for autotrophic operator history
-        callsites = self._custom_history_sites(cn, tree)
-
-        if callsites:
-            # autotrophic history
-            for idx, callsite in enumerate(callsites):
-                chist = self._auto_history(
-                    cn,
-                    callsite,
-                    from_insertion_date=from_insertion_date,
-                    to_insertion_date=to_insertion_date,
-                    from_value_date=from_value_date,
-                    to_value_date=to_value_date,
-                    **kw
-                ) or {}
-                cname = helper.name_of_expr(callsite)
-                hi.namecache[serialize(callsite)] = cname
-                hi.histories.update({
-                    cname: chist
-                })
+        # delegate work for the autotrophic operator histories
+        self._precompute_auto_histories(
+            cn, hi, tree,
+            from_insertion_date=from_insertion_date,
+            to_insertion_date=to_insertion_date,
+            from_value_date=from_value_date,
+            to_value_date=to_value_date,
+            **kw
+        )
 
         idates = sorted({
             idate
