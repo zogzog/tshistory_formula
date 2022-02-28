@@ -106,7 +106,7 @@ def pexpreval(tree, env, asyncfuncs=(), pool=None, hist=False):
 
 
 def pevaluate(expr, env, asyncfuncs=(), concurrency=16, hist=False):
-    if asyncfuncs:
+    if concurrency > 1:
         with ThreadPoolExecutor(concurrency) as pool:
             val = pexpreval(
                 expr, env,
