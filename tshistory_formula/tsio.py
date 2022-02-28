@@ -407,6 +407,35 @@ class timeseries(basets):
 
         return histmap
 
+    def _history_diffs(
+            self,
+            cn, name, hist, idates,
+            from_value_date=None,
+            to_value_date=None,
+            **kw):
+        """
+        Computes the diff mode of an history.
+
+        This is needed to honor the `diffmode` parameter of .history.
+
+        """
+        iteridates = iter(idates)
+        firstidate = next(iteridates)
+        basets = self.get(
+            cn,
+            name,
+            from_value_date=from_value_date,
+            to_value_date=to_value_date,
+            revision_date=firstidate - timedelta(seconds=1),
+            **kw
+        )
+        dhist = {}
+        for idate in idates:
+            dhist[idate] = diff(basets, hist[idate])
+            basets = hist[idate]
+
+        return dhist
+
     @tx
     def history(self, cn, name,
                 from_insertion_date=None,
@@ -488,6 +517,7 @@ class timeseries(basets):
             **kw
         )
 
+        # evaluate the formula using the prepared histories
         idates = sorted({
             idate
             for hist in histmap.values()
@@ -499,23 +529,12 @@ class timeseries(basets):
         }
 
         if diffmode and idates:
-            iteridates = iter(idates)
-            firstidate = next(iteridates)
-            basets = self.get(
-                cn,
-                name,
+            h = self._history_diffs(
+                cn, name, h, idates,
                 from_value_date=from_value_date,
                 to_value_date=to_value_date,
-                revision_date=firstidate - timedelta(seconds=1),
                 **kw
             )
-            newh = {}
-            for idate in idates:
-                newts = diff(basets, h[idate])
-                newh[idate] = newts
-                basets = h[idate]
-
-            h = newh
 
         return h
 
