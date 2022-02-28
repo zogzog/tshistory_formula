@@ -523,20 +523,20 @@ class timeseries(basets):
             for hist in histmap.values()
             for idate in hist
         })
-        h = {
+        hist = {
             idate: hi.evaluate(tree, idate, name)
             for idate in idates
         }
 
         if diffmode and idates:
-            h = self._history_diffs(
-                cn, name, h, idates,
+            hist = self._history_diffs(
+                cn, name, hist, idates,
                 from_value_date=from_value_date,
                 to_value_date=to_value_date,
                 **kw
             )
 
-        return h
+        return hist
 
     @tx
     def insertion_dates(self, cn, name,
