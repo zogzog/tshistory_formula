@@ -115,11 +115,12 @@ def pexpreval(tree, env, asyncfuncs=(), pool=None, hist=False):
     return proc(*posargs, **kwargs)
 
 
-def pevaluate(expr, env, asyncfuncs=(), concurrency=16, hist=False):
+def pevaluate(tree, env, asyncfuncs=(), concurrency=16, hist=False):
     if concurrency > 1:
         with ThreadPoolExecutor(concurrency) as pool:
             val = pexpreval(
-                expr, env,
+                tree,
+                env,
                 {funcid(func) for func in asyncfuncs},
                 pool,
                 hist
@@ -129,7 +130,7 @@ def pevaluate(expr, env, asyncfuncs=(), concurrency=16, hist=False):
         return val
 
     return pexpreval(
-        expr,
+        tree,
         env,
         {funcid(func) for func in asyncfuncs},
         None,
