@@ -1,3 +1,4 @@
+import inspect
 from warnings import warn
 
 import pandas as pd
@@ -24,7 +25,7 @@ def _ensure_options(obj):
 def func(name, auto=False):
     # work around the circular import
     from tshistory_formula.helper import assert_typed
-    from tshistory_formula.interpreter import Interpreter
+    from tshistory_formula.interpreter import HistoryInterpreter
 
     def decorator(func):
         assert_typed(func)
@@ -39,7 +40,7 @@ def func(name, auto=False):
                 # the @history protocol just before)
                 # To return the right historical pieces we will forge a name
                 # made from func signature and actual args.
-                if a and isinstance(a[0], Interpreter) and a[0].histories:
+                if a and isinstance(a[0], HistoryInterpreter) and a[0].histories:
                     return _ensure_options(
                         a[0].get_auto(tree)
                     )
@@ -63,6 +64,11 @@ def history(name):
 
     def decorator(func):
         assert name in AUTO, f'operator {name} is not declared as "auto"'
+        getter = AUTO[name]
+        assert '__interpreter__' in inspect.getfullargspec(getter).args, (
+            f'`{name}` is an autotrophic operator with an history. '
+            'Its `func` getter should have an __interpreter__'
+        )
         HISTORY[name] = func
         return func
 
