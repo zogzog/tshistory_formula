@@ -52,7 +52,7 @@ def resolve(atom, env):
     return atom
 
 
-def pexpreval(tree, env, asyncfuncs=(), pool=None, hist=False):
+def pexpreval(tree, env, funcids=(), pool=None, hist=False):
     if not isinstance(tree, list):
         # we've got an atom
         # we do this very late rather than upfront
@@ -63,18 +63,18 @@ def pexpreval(tree, env, asyncfuncs=(), pool=None, hist=False):
     if tree[0] == 'let':
         newtree, newenv = let(
             env, tree[1:],
-            partial(pexpreval, asyncfuncs=asyncfuncs, pool=pool, hist=hist)
+            partial(pexpreval, funcids=funcids, pool=pool, hist=hist)
         )
         # the env grows new bindigs
         # the tree has lost its let-definition
-        return pexpreval(newtree, newenv, asyncfuncs, pool, hist)
+        return pexpreval(newtree, newenv, funcids, pool, hist)
 
     # a functional expression
     # the recursive evaluation will
     # * dereference the symbols -> functions
     # * evaluate the sub-expressions -> values
     exps = [
-        pexpreval(exp, env, asyncfuncs, pool, hist)
+        pexpreval(exp, env, funcids, pool, hist)
         for exp in tree
     ]
     # since some calls are evaluated asynchronously (e.g. series) we
@@ -95,7 +95,7 @@ def pexpreval(tree, env, asyncfuncs=(), pool=None, hist=False):
 
     # for autotrophic operators: prepare to pass the tree if present
     funkey = funcid(func)
-    if hist and funkey in asyncfuncs:
+    if hist and funkey in funcids:
         kwargs['__tree__'] = tree
 
     # prepare args injection from the lisp environment
@@ -107,7 +107,7 @@ def pexpreval(tree, env, asyncfuncs=(), pool=None, hist=False):
 
     # an async function, e.g. series, being I/O oriented
     # can be deferred to a thread
-    if funkey in asyncfuncs and pool:
+    if funkey in funcids and pool:
         return pool.submit(proc, *posargs, **kwargs)
 
     # at this point, we have a function, and all the arguments
