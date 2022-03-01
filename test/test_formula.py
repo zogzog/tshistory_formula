@@ -1211,7 +1211,7 @@ def test_autotrophic_operators_history(engine, tsh):
     OperatorHistory.FUNCS = None
 
     @func('test-path', auto=True)
-    def test_path(__interpreter__, base: int, coeff: float=1.) -> pd.Series:
+    def test_path(base: int, coeff: float=1.) -> pd.Series:
 
         # We don't get there
         assert False
@@ -1249,8 +1249,9 @@ def test_autotrophic_operators_history(engine, tsh):
         '(+ 1 (test-path 0))'
     )
 
-    h = tsh.history(engine, 'test-the-path')
-    assert_hist("""
+    with pytest.raises(AssertionError):
+        h = tsh.history(engine, 'test-the-path')
+        assert_hist("""
 insertion_date             value_date
 2023-01-01 00:00:00+00:00  2022-01-01    2.0
                            2022-01-02    3.0
