@@ -13,8 +13,7 @@ from psyl.lisp import (
 from tshistory.util import empty_series
 from tshistory_formula.evaluator import (
     pevaluate,
-    pexpreval,
-    quasiexpreval
+    pexpreval
 )
 
 from tshistory_formula import (
@@ -69,7 +68,7 @@ class Interpreter:
         return self.tsh.get(self.cn, name, **getargs)
 
     def evaluate(self, tree):
-        return pevaluate(tree, self.env, self.auto)
+        return pevaluate(tree, self.env, self.auto, self.tsh.concurrency)
 
     def today(self, naive, tz):
         if naive:
@@ -114,12 +113,12 @@ class OperatorHistory(Interpreter):
         return OperatorHistory.FUNCS
 
     def evaluate_history(self, tree):
-        return pexpreval(
-            quasiexpreval(
-                tree,
-                self.env,
-            ),
-            self.env
+        return pevaluate(
+            tree,
+            self.env,
+            self.auto,
+            self.tsh.concurrency,
+            hist=True
         )
 
 
@@ -178,7 +177,7 @@ class HistoryInterpreter(Interpreter):
         self.getargs['revision_date'] = idate
         self.env['__name__'] = name
         self.env['__idate__'] = idate
-        ts = pevaluate(tree, self.env, self.auto, hist=True)
+        ts = pevaluate(tree, self.env, self.auto, self.tsh.concurrency, hist=True)
         ts.name = name
         return ts
 
@@ -274,7 +273,7 @@ class BridgeInterpreter(Interpreter):
 
     def g_evaluate(self, text, combination):
         self.env['__combination__'] = combination
-        ts = pevaluate(parse(text), self.env)
+        ts = pevaluate(parse(text), self.env, (), self.tsh.concurrency)
         ts.name = '.'.join([
             str(sn)
             for _, sn, in combination.items()

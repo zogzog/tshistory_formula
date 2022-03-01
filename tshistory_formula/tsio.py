@@ -29,6 +29,7 @@ from tshistory_formula.registry import (
 class timeseries(basets):
     fast_staircase_operators = set(['+', '*', 'series', 'add', 'priority'])
     metadata_compat_excluded = ()
+    concurrency = 16
 
     def find_series(self, cn, tree):
         op = tree[0]

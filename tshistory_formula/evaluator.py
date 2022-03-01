@@ -28,6 +28,9 @@ from psyl.lisp import (
 from tshistory_formula.helper import ThreadPoolExecutor
 
 
+NONETYPE = type(None)
+
+
 @cache
 def funcid(func):
     return hash(inspect.getsource(func))
@@ -118,4 +121,10 @@ def pevaluate(expr, env, asyncfuncs=(), concurrency=16, hist=False):
                 val = val.result()
         return val
 
-    return pexpreval(expr, env, asyncfuncs, None, hist)
+    return pexpreval(
+        expr,
+        env,
+        {funcid(func) for func in asyncfuncs},
+        None,
+        hist
+    )

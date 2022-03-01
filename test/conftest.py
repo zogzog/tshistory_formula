@@ -23,14 +23,16 @@ def engine(request):
     db.setup_local_pg_cluster(request, DATADIR, port)
     uri = 'postgresql://localhost:{}/postgres'.format(port)
     e = create_engine(uri)
-    tsschema().create(e, reset=True)
-    formula_schema().create(e)
     return e
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='session', params=[1, 16])
 def tsh(request, engine):
-    return timeseries()
+    tsschema().create(engine, reset=True)
+    formula_schema().create(engine)
+    tsh = timeseries()
+    tsh.concurrency = request.param
+    yield tsh
 
 
 @pytest.fixture(scope='session')
@@ -93,8 +95,11 @@ class WebTester(webtest.TestApp):
             print('ERRORS', res.errors)
             # raise <- default behaviour on 4xx is silly
 
+
 @pytest.fixture(scope='session')
 def client(engine):
+    tsschema().create(engine, reset=True)
+    formula_schema().create(engine)
     wsgi = make_app(
         api.timeseries(
             str(engine.url),
