@@ -11,10 +11,7 @@ from psyl.lisp import (
 )
 
 from tshistory.util import empty_series
-from tshistory_formula.evaluator import (
-    pevaluate,
-    pexpreval
-)
+from tshistory_formula.evaluator import pevaluate
 
 from tshistory_formula import (
     helper,

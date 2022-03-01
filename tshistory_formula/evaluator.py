@@ -52,7 +52,7 @@ def resolve(atom, env):
     return atom
 
 
-def pexpreval(tree, env, funcids=(), pool=None, hist=False):
+def _evaluate(tree, env, funcids=(), pool=None, hist=False):
     if not isinstance(tree, list):
         # we've got an atom
         # we do this very late rather than upfront
@@ -63,18 +63,18 @@ def pexpreval(tree, env, funcids=(), pool=None, hist=False):
     if tree[0] == 'let':
         newtree, newenv = let(
             env, tree[1:],
-            partial(pexpreval, funcids=funcids, pool=pool, hist=hist)
+            partial(_evaluate, funcids=funcids, pool=pool, hist=hist)
         )
         # the env grows new bindigs
         # the tree has lost its let-definition
-        return pexpreval(newtree, newenv, funcids, pool, hist)
+        return _evaluate(newtree, newenv, funcids, pool, hist)
 
     # a functional expression
     # the recursive evaluation will
     # * dereference the symbols -> functions
     # * evaluate the sub-expressions -> values
     exps = [
-        pexpreval(exp, env, funcids, pool, hist)
+        _evaluate(exp, env, funcids, pool, hist)
         for exp in tree
     ]
     # since some calls are evaluated asynchronously (e.g. series) we
@@ -118,7 +118,7 @@ def pexpreval(tree, env, funcids=(), pool=None, hist=False):
 def pevaluate(tree, env, asyncfuncs=(), concurrency=16, hist=False):
     if concurrency > 1:
         with ThreadPoolExecutor(concurrency) as pool:
-            val = pexpreval(
+            val = _evaluate(
                 tree,
                 env,
                 {funcid(func) for func in asyncfuncs},
@@ -129,7 +129,7 @@ def pevaluate(tree, env, asyncfuncs=(), concurrency=16, hist=False):
                 val = val.result()
         return val
 
-    return pexpreval(
+    return _evaluate(
         tree,
         env,
         {funcid(func) for func in asyncfuncs},
