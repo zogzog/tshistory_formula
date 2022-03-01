@@ -22,7 +22,7 @@ except ImportError:
 from psyl.lisp import (
     buildargs,
     let,
-    quasiexpreval
+    Symbol
 )
 
 from tshistory_formula.helper import ThreadPoolExecutor
@@ -45,13 +45,20 @@ QARGS = {
 
 # parallel evaluator
 
+def resolve(atom, env):
+    if isinstance(atom, Symbol):
+        return env.find(atom)
+    assert isinstance(atom, (int, float, str, NONETYPE))
+    return atom
+
+
 def pexpreval(tree, env, asyncfuncs=(), pool=None, hist=False):
     if not isinstance(tree, list):
         # we've got an atom
         # we do this very late rather than upfront
         # because the interpreter will need the original
         # symbolic expression to build names
-        return quasiexpreval(tree, env)
+        return resolve(tree, env)
 
     if tree[0] == 'let':
         newtree, newenv = let(
