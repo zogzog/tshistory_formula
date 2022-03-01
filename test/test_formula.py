@@ -1206,6 +1206,64 @@ insertion_date             value_date
 """, hist)
 
 
+def test_autotrophic_operators_history(engine, tsh):
+    # reset this to be sure it contains our _very late_ new operators definitions
+    OperatorHistory.FUNCS = None
+
+    @func('test-path', auto=True)
+    def test_path(__interpreter__, base: int, coeff: float=1.) -> pd.Series:
+
+        # We don't get there
+        assert False
+
+        return pd.Series(
+            np.array([base, base + 1, base + 2]) * coeff,
+            index=pd.date_range(dt(2022, 1, 1), periods=3, freq='D')
+        )
+
+    @metadata('test-path')
+    def test_path__metadata(_cn, _tsh, tree):
+        return {
+            tree[0]: {
+                'index_type': 'datetime64[ns]',
+                'index_dtype': '|M8[ns]',
+                'tzaware': False,
+                'value_type': 'float64',
+                'value_dtype': '<f8'
+            }
+        }
+
+    @history('test-path')
+    def test_path_history(__interpreter__, base, coeff=1.):
+        hist = {}
+        for i in (1, 2, 3):
+            hist[pd.Timestamp(f'2023-1-{i}', tz='utc')] = pd.Series(
+                np.array([base + i, base + i + 1, base + i + 2]) * coeff,
+                index=pd.date_range(dt(2022, 1, i), periods=3, freq='D')
+            )
+        return hist
+
+    tsh.register_formula(
+        engine,
+        'test-the-path',
+        '(+ 1 (test-path 0))'
+    )
+
+    h = tsh.history(engine, 'test-the-path')
+    assert_hist("""
+insertion_date             value_date
+2023-01-01 00:00:00+00:00  2022-01-01    2.0
+                           2022-01-02    3.0
+                           2022-01-03    4.0
+2023-01-02 00:00:00+00:00  2022-01-02    3.0
+                           2022-01-03    4.0
+                           2022-01-04    5.0
+2023-01-03 00:00:00+00:00  2022-01-03    4.0
+                           2022-01-04    5.0
+                           2022-01-05    6.0
+""", h)
+
+
 def test_expanded(engine, tsh):
     @func('customseries')
     def customseries() -> pd.Series:
