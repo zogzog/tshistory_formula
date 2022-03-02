@@ -1340,7 +1340,73 @@ def test_time_shifted(engine, tsh):
 """, s1)
 
 
-def test_asof(engine, tsh):
+def test_asof_fixed_date(engine, tsh):
+    for v in range(1, 4):
+        idate = utcdt(2022, 1, v)
+        series = pd.Series(
+            [v] * 5,
+            index=pd.date_range(
+                utcdt(2022, 1, 1),
+                periods=5,
+                freq='D'
+            )
+        )
+
+        tsh.update(
+            engine,
+            series,
+            'asof-base-fixed',
+            'Babar',
+            insertion_date=idate
+        )
+
+    tsh.register_formula(
+        engine,
+        'test-asof-fixed',
+        '(asof (date "2022-1-2") (series "asof-base-fixed"))'
+    )
+
+    s0 = tsh.get(
+        engine,
+        'test-asof-fixed'
+    )
+    assert_df("""
+2022-01-01 00:00:00+00:00    2.0
+2022-01-02 00:00:00+00:00    2.0
+2022-01-03 00:00:00+00:00    2.0
+2022-01-04 00:00:00+00:00    2.0
+2022-01-05 00:00:00+00:00    2.0
+""", s0)
+
+    s1 = tsh.get(
+        engine,
+        'test-asof-fixed',
+        revision_date=utcdt(2022, 1, 2)
+    )
+    # here we see the asof forcing at work
+    assert_df("""
+2022-01-01 00:00:00+00:00    2.0
+2022-01-02 00:00:00+00:00    2.0
+2022-01-03 00:00:00+00:00    2.0
+2022-01-04 00:00:00+00:00    2.0
+2022-01-05 00:00:00+00:00    2.0
+""", s1)
+
+    s2 = tsh.get(
+        engine,
+        'test-asof-fixed',
+        revision_date=utcdt(2022, 1, 1)
+    )
+    assert_df("""
+2022-01-01 00:00:00+00:00    2.0
+2022-01-02 00:00:00+00:00    2.0
+2022-01-03 00:00:00+00:00    2.0
+2022-01-04 00:00:00+00:00    2.0
+2022-01-05 00:00:00+00:00    2.0
+""", s2)
+
+
+def test_asof_today(engine, tsh):
     for v in range(1, 3):
         idate = utcdt(2022, 1, v)
         series = pd.Series(
