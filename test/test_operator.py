@@ -461,7 +461,7 @@ def test_priority(engine, tsh):
     tsh.register_formula(
         engine,
         'test_prio',
-        '(priority (series "c" #:prune 1) (series "b") (series "a"))'
+        '(priority (series "c") (series "b") (series "a"))'
     )
 
     prio = tsh.get(engine, 'test_prio')
@@ -471,6 +471,7 @@ def test_priority(engine, tsh):
 2019-01-02     10.0
 2019-01-03    100.0
 2019-01-04    200.0
+2019-01-05    300.0
 """, prio)
 
     prio = tsh.get(engine, 'test_prio', revision_date=utcdt(2019, 12, 1))
@@ -489,11 +490,9 @@ def test_priority(engine, tsh):
         from_value_date=dt(2019, 1, 2),
         to_value_date=dt(2019, 1, 3)
     )
-    # NOTE that the 1-3 point is now 20 because the 100 (series c)
-    #      point has been pruned
     assert_df("""
-2019-01-02    10.0
-2019-01-03    20.0
+2019-01-02     10.0
+2019-01-03    100.0
 """, limited)
 
     # type
@@ -518,6 +517,7 @@ insertion_date             value_date
                            2019-01-02     10.0
                            2019-01-03    100.0
                            2019-01-04    200.0
+                           2019-01-05    300.0
 """, h)
 
 

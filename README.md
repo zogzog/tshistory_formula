@@ -177,14 +177,10 @@ The `series` operator accepts several keywords:
   will be `add`ed with others; accepted values are `"ffill"`
   (forward-fill), `"bfill"` (backward-fill) or any floating value.
 
-* `prune` to indicate how many points must be truncated from the tail
-  end (useful for priorities).
-
 For instance in `(add (series "a" #:fill 0) (series "b")` will make
 sure that series `a`, if shorter than series `b` will get zeroes
 instead of nans where `b` provides values.
 
-In `(series "realized" #:prune 3)` we would drop the last three points.
 
 ### slice
 

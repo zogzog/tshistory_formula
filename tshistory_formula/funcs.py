@@ -39,7 +39,6 @@ from tshistory_formula.interpreter import Interpreter
 @func('options')
 def options(series: pd.Series,
             fill: Union[str, Number, NONETYPE]=None,
-            prune: Optional[int]=None,
             weight: Optional[Number]=None) -> pd.Series:
     """
     The `options` operator takes a series and three keywords to modify
@@ -53,16 +52,10 @@ def options(series: pd.Series,
     * `weight` to provide a weight (float) value to be used by other
       operators like e.g. `row-mean`
 
-    * `prune` to indicate how many points must be truncated from the
-      tail end (useful for priorities). Applies immediately.
-
     The `fill` and `weight` options are put on the series object for
-    later use while `prune` is applied immediately.
+    later use.
 
     """
-    if prune:
-        series = series[:-prune]
-
     series.options = {
         'fill': fill
     }
@@ -111,7 +104,6 @@ def series(__interpreter__,
            __revision_date__,
            name: seriesname,
            fill: Union[str, Number, NONETYPE]=None,
-           prune: Optional[int]=None,
            weight: Optional[Number]=None) -> pd.Series:
     """
     The `series` operator accepts several keywords:
@@ -124,15 +116,9 @@ def series(__interpreter__,
     * `weight` to provide a weight (float) value to be used by other
       operators like e.g. `row-mean`
 
-    * `prune` to indicate how many points must be truncated from the
-      tail end (useful for priorities).
-
-
     For instance in `(add (series "a" #:fill 0) (series "b")` will
     make sure that series `a`, if shorter than series `b` will get
     zeroes instead of nans where `b` provides values.
-
-    In `(series "realized" #:prune 3)` we would drop the last three points.
 
     """
     i = __interpreter__
@@ -163,8 +149,6 @@ def series(__interpreter__,
         compatible_date(tzaware, __from_value_date__):
         compatible_date(tzaware, __to_value_date__)
     ]
-    if prune:
-        ts = ts[:-prune]
     ts.options = {
         'fill': fill
     }

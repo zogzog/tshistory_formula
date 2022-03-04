@@ -515,7 +515,7 @@ def test_error(engine, tsh):
         tsh.register_formula(
             engine,
             'test_error',
-            '(priority (series "NOPE1") (series "NOPE2" #:prune 1))'
+            '(priority (series "NOPE1") (series "NOPE2"))'
         )
     assert err.value.args[0] == (
         'Formula `test_error` refers to '
@@ -1685,8 +1685,8 @@ def test_expand_vs_fill(engine, tsh):
     tsh.register_formula(
         engine,
         'top-expandme',
-        '(row-mean (series "bottom-expandme" #:fill 0 #:prune 1 #:weight 1.5) '
-        '          (series "bottom-expandme" #:fill 1 #:prune 2))'
+        '(row-mean (series "bottom-expandme" #:fill 0 #:weight 1.5) '
+        '          (series "bottom-expandme" #:fill 1))'
     )
 
     e = expanded(
@@ -1697,8 +1697,8 @@ def test_expand_vs_fill(engine, tsh):
 
     assert lisp.serialize(e) == (
         '(row-mean'
-        ' (options (series "base-expand-me") #:fill 0 #:prune 1 #:weight 1.5)'
-        ' (options (series "base-expand-me") #:fill 1 #:prune 2))'
+        ' (options (series "base-expand-me") #:fill 0 #:weight 1.5)'
+        ' (options (series "base-expand-me") #:fill 1))'
     )
 
     ts = tsh.get(
@@ -1711,10 +1711,10 @@ def test_expand_vs_fill(engine, tsh):
     # and handles itself well the missing value situation
     # the #:weight is also a bit useless if only for the
     # above test
-    # only #:prune has a visible effect
     assert_df("""
 2021-01-01 00:00:00+00:00    1.0
 2021-01-02 00:00:00+00:00    2.0
+2021-01-03 00:00:00+00:00    3.0
 """, ts)
 
 
@@ -1746,8 +1746,8 @@ def test_expanded_stopnames(engine, tsh):
     tsh.register_formula(
         engine,
         'top-expandme2',
-        '(row-mean (series "bottom-expandme2" #:fill 0 #:prune 1 #:weight 1.5) '
-        '          (series "bottom-expandme3" #:fill 1 #:prune 2))'
+        '(row-mean (series "bottom-expandme2" #:fill 0 #:weight 1.5) '
+        '          (series "bottom-expandme3" #:fill 1))'
     )
 
     e = expanded(
@@ -1759,8 +1759,8 @@ def test_expanded_stopnames(engine, tsh):
 
     assert lisp.serialize(e) == (
         '(row-mean'
-        ' (series "bottom-expandme2" #:fill 0 #:prune 1 #:weight 1.5)'
-        ' (options (series "base-expand-me2") #:fill 1 #:prune 2))'
+        ' (series "bottom-expandme2" #:fill 0 #:weight 1.5)'
+        ' (options (series "base-expand-me2") #:fill 1))'
     )
 
 

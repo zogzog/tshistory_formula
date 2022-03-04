@@ -49,7 +49,7 @@ def rename_operator(tree, oldname, newname):
 
 def extract_auto_options(tree):
     options = []
-    optnames = ('fill', 'weight', 'prune')
+    optnames = ('fill', 'weight')
 
     keyword = None
     for item in tree:

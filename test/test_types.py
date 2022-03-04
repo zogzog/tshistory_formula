@@ -58,7 +58,6 @@ def test_function_types():
     assert types == {
         'fill': 'Default[Union[str, Number]=None]',
         'name': 'seriesname',
-        'prune': 'Default[int=None]',
         'return': 'Series',
         'weight': 'Default[Number=None]'
     }
@@ -169,7 +168,6 @@ def test_operators_types():
                     'years': 'Default[int=0]'},
         'series': {'fill': 'Default[Union[str, Number]=None]',
                    'name': 'seriesname',
-                   'prune': 'Default[int=None]',
                    'return': 'Series',
                    'weight': 'Default[Number=None]'},
         'slice': {'fromdate': 'Default[Timestamp=None]',
@@ -243,16 +241,16 @@ def test_failing_arg(engine, tsh):
 
 
 def test_failing_kw(engine, tsh):
-    expr = '(+ 1 (series "types-a" #:fill "ffill" #:prune "toto"))'
+    expr = '(+ 1 (series 42))'
     i = Interpreter(engine, tsh, {})
     with pytest.raises(TypeError) as err:
         typecheck(lisp.parse(expr), i.env)
 
-    assert err.value.args[0] == "keyword `prune` = 'toto' not of typing.Optional[int]"
+    assert err.value.args[0] == "42 not of <class 'tshistory_formula.helper.seriesname'>"
 
 
 def test_kw_subexpr(engine, tsh):
-    expr = '(+ 1 (series "types-a" #:prune (+ 1 2)))'
+    expr = '(+ 1 (series "types-a" #:weight (+ 1 2)))'
     i = Interpreter(engine, tsh, {})
     typecheck(lisp.parse(expr), i.env)
 

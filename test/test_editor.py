@@ -33,7 +33,7 @@ def test_editor_table_callback(tsa):
 
     tsa.register_formula(
         'editor-1',
-        '(add (* 3.1416 (series "groundzero-a" #:fill "bfill" #:prune 1)) (series "one-a"))',
+        '(add (* 3.1416 (series "groundzero-a" #:fill "bfill")) (series "one-a"))',
     )
 
     presenter = fancypresenter(tsa, 'editor-1', {})
@@ -196,7 +196,7 @@ def test_complicated_thing(tsa):
 
     tsa.register_formula(
         'complicated',
-        '(add (* 3.1416 (series "groundzero-b" #:fill "bfill" #:prune 1))'
+        '(add (* 3.1416 (series "groundzero-b" #:fill "bfill"))'
         '     (* 2 (row-min (+ 1 (series "groundzero-b")) (series "one-b"))))',
     )
 
