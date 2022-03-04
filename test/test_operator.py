@@ -1405,9 +1405,122 @@ def test_asof_fixed_date(engine, tsh):
 2022-01-05 00:00:00+00:00    2.0
 """, s2)
 
+    h = tsh.history(
+        engine,
+        'test-asof-fixed'
+    )
+    assert_hist("""
+insertion_date             value_date               
+2022-01-01 00:00:00+00:00  2022-01-01 00:00:00+00:00    2.0
+                           2022-01-02 00:00:00+00:00    2.0
+                           2022-01-03 00:00:00+00:00    2.0
+                           2022-01-04 00:00:00+00:00    2.0
+                           2022-01-05 00:00:00+00:00    2.0
+2022-01-02 00:00:00+00:00  2022-01-01 00:00:00+00:00    2.0
+                           2022-01-02 00:00:00+00:00    2.0
+                           2022-01-03 00:00:00+00:00    2.0
+                           2022-01-04 00:00:00+00:00    2.0
+                           2022-01-05 00:00:00+00:00    2.0
+2022-01-03 00:00:00+00:00  2022-01-01 00:00:00+00:00    2.0
+                           2022-01-02 00:00:00+00:00    2.0
+                           2022-01-03 00:00:00+00:00    2.0
+                           2022-01-04 00:00:00+00:00    2.0
+                           2022-01-05 00:00:00+00:00    2.0
+""", h)
+
+
+def test_asof_fixed2(engine, tsh):
+    for v in range(1, 4):
+        idate = utcdt(2022, 1, v)
+        series = pd.Series(
+            [v] * 5,
+            index=pd.date_range(
+                utcdt(2022, 1, 1),
+                periods=5,
+                freq='D'
+            )
+        )
+
+        tsh.update(
+            engine,
+            series,
+            'asof-base-fixed2',
+            'Babar',
+            insertion_date=idate
+        )
+
+    tsh.register_formula(
+        engine,
+        'test-asof-fixed2',
+        '(add (series "asof-base-fixed2")'
+        '     (asof (date "2022-1-2") (series "asof-base-fixed2")))'
+    )
+
+    s0 = tsh.get(
+        engine,
+        'test-asof-fixed2'
+    )
+    assert_df("""
+2022-01-01 00:00:00+00:00    5.0
+2022-01-02 00:00:00+00:00    5.0
+2022-01-03 00:00:00+00:00    5.0
+2022-01-04 00:00:00+00:00    5.0
+2022-01-05 00:00:00+00:00    5.0
+""", s0)
+
+    s1 = tsh.get(
+        engine,
+        'test-asof-fixed2',
+        revision_date=utcdt(2022, 1, 2)
+    )
+    # here we see the asof forcing at work
+    assert_df("""
+2022-01-01 00:00:00+00:00    4.0
+2022-01-02 00:00:00+00:00    4.0
+2022-01-03 00:00:00+00:00    4.0
+2022-01-04 00:00:00+00:00    4.0
+2022-01-05 00:00:00+00:00    4.0
+""", s1)
+
+    s2 = tsh.get(
+        engine,
+        'test-asof-fixed2',
+        revision_date=utcdt(2022, 1, 1)
+    )
+    assert_df("""
+2022-01-01 00:00:00+00:00    3.0
+2022-01-02 00:00:00+00:00    3.0
+2022-01-03 00:00:00+00:00    3.0
+2022-01-04 00:00:00+00:00    3.0
+2022-01-05 00:00:00+00:00    3.0
+""", s2)
+
+    h = tsh.history(
+        engine,
+        'test-asof-fixed2'
+    )
+    assert_hist("""
+insertion_date             value_date               
+2022-01-01 00:00:00+00:00  2022-01-01 00:00:00+00:00    3.0
+                           2022-01-02 00:00:00+00:00    3.0
+                           2022-01-03 00:00:00+00:00    3.0
+                           2022-01-04 00:00:00+00:00    3.0
+                           2022-01-05 00:00:00+00:00    3.0
+2022-01-02 00:00:00+00:00  2022-01-01 00:00:00+00:00    4.0
+                           2022-01-02 00:00:00+00:00    4.0
+                           2022-01-03 00:00:00+00:00    4.0
+                           2022-01-04 00:00:00+00:00    4.0
+                           2022-01-05 00:00:00+00:00    4.0
+2022-01-03 00:00:00+00:00  2022-01-01 00:00:00+00:00    5.0
+                           2022-01-02 00:00:00+00:00    5.0
+                           2022-01-03 00:00:00+00:00    5.0
+                           2022-01-04 00:00:00+00:00    5.0
+                           2022-01-05 00:00:00+00:00    5.0
+""", h)
+
 
 def test_asof_today(engine, tsh):
-    for v in range(1, 3):
+    for v in range(1, 4):
         idate = utcdt(2022, 1, v)
         series = pd.Series(
             [v] * 5,
@@ -1426,15 +1539,34 @@ def test_asof_today(engine, tsh):
             insertion_date=idate
         )
 
+    idates = tsh.insertion_dates(
+        engine,
+        'asof-base'
+    )
+    assert idates == [
+        pd.Timestamp('2022-01-01 00:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-01-02 00:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-01-03 00:00:00+0000', tz='UTC')
+    ]
+    idates = tsh.insertion_dates(
+        engine,
+        'asof-base',
+        from_insertion_date=utcdt(2022, 1, 2),
+        to_insertion_date=utcdt(2022, 1, 2)
+    )
+    assert idates == [
+        pd.Timestamp('2022-01-02 00:00:00+0000', tz='UTC')
+    ]
+
     tsh.register_formula(
         engine,
-        'test-asof',
+        'test-asof-yesterday',
         '(asof (shifted (today) #:days -1) (series "asof-base"))'
     )
 
     exp = tsh.expanded_formula(
         engine,
-        'test-asof'
+        'test-asof-yesterday'
     )
     assert exp == (
         '(let revision_date nil from_value_date nil to_value_date nil'
@@ -1445,7 +1577,7 @@ def test_asof_today(engine, tsh):
 
     s1 = tsh.get(
         engine,
-        'test-asof',
+        'test-asof-yesterday',
         revision_date=utcdt(2022, 1, 2)
     )
     assert_df("""
@@ -1458,14 +1590,14 @@ def test_asof_today(engine, tsh):
 
     s2 = tsh.get(
         engine,
-        'test-asof',
+        'test-asof-yesterday',
         revision_date=utcdt(2022, 1, 1)
     )
     assert not len(s2)
 
     s3 = tsh.get(
         engine,
-        'test-asof',
+        'test-asof-yesterday',
         revision_date=utcdt(2022, 1, 3)
     )
     assert_df("""
@@ -1475,6 +1607,39 @@ def test_asof_today(engine, tsh):
 2022-01-04 00:00:00+00:00    2.0
 2022-01-05 00:00:00+00:00    2.0
 """, s3)
+
+    h = tsh.history(
+        engine,
+        'test-asof-yesterday'
+    )
+    assert_hist("""
+insertion_date             value_date               
+2022-01-02 00:00:00+00:00  2022-01-01 00:00:00+00:00    1.0
+                           2022-01-02 00:00:00+00:00    1.0
+                           2022-01-03 00:00:00+00:00    1.0
+                           2022-01-04 00:00:00+00:00    1.0
+                           2022-01-05 00:00:00+00:00    1.0
+2022-01-03 00:00:00+00:00  2022-01-01 00:00:00+00:00    2.0
+                           2022-01-02 00:00:00+00:00    2.0
+                           2022-01-03 00:00:00+00:00    2.0
+                           2022-01-04 00:00:00+00:00    2.0
+                           2022-01-05 00:00:00+00:00    2.0
+""", h)
+
+    h = tsh.history(
+        engine,
+        'test-asof-yesterday',
+        to_insertion_date=utcdt(2022, 1, 2)
+    )
+    assert_hist("""
+insertion_date             value_date               
+2022-01-02 00:00:00+00:00  2022-01-01 00:00:00+00:00    1.0
+                           2022-01-02 00:00:00+00:00    1.0
+                           2022-01-03 00:00:00+00:00    1.0
+                           2022-01-04 00:00:00+00:00    1.0
+                           2022-01-05 00:00:00+00:00    1.0
+""", h)
+
 
 
 def test_rolling(engine, tsh):

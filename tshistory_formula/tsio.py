@@ -75,6 +75,19 @@ class timeseries(basets):
                 ops.update(newops)
         return ops
 
+    def has_asof(self, cn, tree):
+        op = tree[0]
+
+        if op == 'asof':
+            return True
+
+        for item in tree[1:]:
+            if isinstance(item, list):
+                if self.has_asof(cn, item):
+                    return True
+
+        return False
+
     def check_tz_compatibility(self, cn, tree):
         """check that series are timezone-compatible
         """
@@ -279,6 +292,27 @@ class timeseries(basets):
             name=name
         )
 
+    @tx
+    def iter_revisions(
+            self, cn, name,
+            from_value_date=None,
+            to_value_date=None,
+            from_insertion_date=None,
+            to_insertion_date=None,
+            **kw):
+        idates = self.insertion_dates(
+            cn, name,
+            from_insertion_date=from_insertion_date,
+            to_insertion_date=to_insertion_date
+        )
+        for idate in idates:
+            yield idate, self.get(
+                cn, name,
+                revision_date=idate,
+                from_value_date=from_value_date,
+                to_value_date=to_value_date
+            )
+
     def _custom_history_sites(self, cn, tree):
         return [
             call
@@ -408,6 +442,7 @@ class timeseries(basets):
 
         return histmap
 
+
     def _history_diffs(
             self,
             cn, name, hist, idates,
@@ -473,11 +508,43 @@ class timeseries(basets):
             return hist
 
         formula = self.formula(cn, name)
-        tree = self._expanded_formula(cn, formula)
-        series = self.find_series(cn, tree)
+        tree = self._expanded_formula(
+            cn, formula,
+            qargs={
+                'from_value_date': from_value_date,
+                'to_value_date': to_value_date
+            }
+        )
+
+        if self.has_asof(cn, tree):
+            # formula with an "asof" expression
+            # in this case we completely switch to the simpler
+            # (but potentially slower) path, using iter_revisions
+            # in this mode, the "asof" logic is already taken care by
+            # the asof rewriter + __revision_date__ parameter in series
+            # and other auto operators
+            hist = {
+                idate: value
+                for idate, value in self.iter_revisions(
+                        cn, name,
+                        from_value_date=from_value_date,
+                        to_value_date=to_value_date,
+                        from_insertion_date=from_insertion_date,
+                        to_insertion_date=to_insertion_date,
+                        **kw
+                )
+            }
+            if diffmode:
+                return self._history_diffs(
+                    cn, name, hist, idates,
+                    from_value_date=None,
+                    to_value_date=None,
+                    **kw)
+            return hist
 
         # normal history: compute the union of the histories
         # of all underlying series
+        series = self.find_series(cn, tree)
         histmap = {
             name: self.history(
                 cn, name,
