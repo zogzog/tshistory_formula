@@ -7,6 +7,17 @@ create table "{ns}".formula (
 
 create unique index "ix_{ns}_formula_name" on "{ns}".formula (name);
 
+
+create table "{ns}".dependant (
+  sid int not null references "{ns}".formula(id) on delete cascade,
+  needs int not null references "{ns}".formula(id) on delete cascade,
+  unique(sid, needs)
+);
+
+create index "ix_{ns}_dependant_sid" on "{ns}".dependant (sid);
+create index "ix_{ns}_dependant_needs" on "{ns}".dependant (needs);
+
+
 create table "{ns}".group_formula (
   id serial primary key,
   -- name will have an index (unique), sufficient for the query needs

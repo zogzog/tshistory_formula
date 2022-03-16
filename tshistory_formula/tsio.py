@@ -125,6 +125,35 @@ class timeseries(basets):
         return first_tzaware
 
     @tx
+    def register_dependants(self, cn, name, tree):
+        for dep in self.find_series(cn, tree):
+            if self.type(cn, dep) != 'formula':
+                continue
+            cn.execute(
+                f'insert into "{self.namespace}".dependant '
+                f'(sid, needs) '
+                f'values ('
+                f' (select id from "{self.namespace}".formula where name = %(name)s),'
+                f' (select id from "{self.namespace}".formula where name = %(dep)s)'
+                f')',
+                name=name,
+                dep=dep
+            )
+
+    @tx
+    def dependants(self, cn, name):
+        return [n for n, in cn.execute(
+            f'select f.name '
+            f'from "{self.namespace}".formula as f, '
+            f'     "{self.namespace}".formula as f2,'
+            f'     "{self.namespace}".dependant as d '
+            f'where f.id = d.sid and '
+            f'      d.needs = f2.id and '
+            f'      f2.name = %(name)s',
+            name=name
+        ).fetchall()]
+
+    @tx
     def register_formula(self, cn, name, formula,
                          reject_unknown=True, update=False):
         if not update:
@@ -179,6 +208,8 @@ class timeseries(basets):
             name=name,
             text=formula
         )
+
+        self.register_dependants(cn, name, tree)
 
         # save metadata
         if tzaware is None:

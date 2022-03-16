@@ -1823,6 +1823,53 @@ insertion_date             value_date
 """, hist)
 
 
+def test_dependants(engine, tsh):
+    ts = pd.Series(
+        [1, 2, 3],
+        index=pd.date_range(utcdt(2022, 1, 1), periods=3, freq='D')
+    )
+
+    tsh.update(
+        engine,
+        ts,
+        'dep-base',
+        'Babar'
+    )
+
+    tsh.register_formula(
+        engine,
+        'dep-bottom',
+        '(series "dep-base")'
+    )
+    tsh.register_formula(
+        engine,
+        'dep-middle-left',
+        '(+ -1 (series "dep-bottom"))'
+    )
+    tsh.register_formula(
+        engine,
+        'dep-middle-right',
+        '(+ 1 (series "dep-bottom"))'
+    )
+    tsh.register_formula(
+        engine,
+        'dep-top',
+        '(add (series "dep-middle-left") (series "dep-middle-right"))'
+    )
+    assert tsh.dependants(engine, 'dep-top') == []
+    assert tsh.dependants(engine, 'dep-middle-left') == [
+        'dep-top',
+    ]
+    assert tsh.dependants(engine, 'dep-middle-right') == [
+        'dep-top',
+    ]
+    assert tsh.dependants(engine, 'dep-bottom') == [
+        'dep-middle-left',
+        'dep-middle-right'
+    ]
+
+
+
 # groups
 
 def test_group_formula(engine, tsh):
