@@ -1868,6 +1868,27 @@ def test_dependants(engine, tsh):
         'dep-middle-right'
     ]
 
+    tsh.register_formula(
+        engine,
+        'dep-top',
+        '(add'
+        ' (series "dep-middle-left")'
+        ' (series "dep-middle-right")'
+        ' (series "dep-bottom"))',
+        update=True
+    )
+    assert tsh.dependants(engine, 'dep-top') == []
+    assert tsh.dependants(engine, 'dep-middle-left') == [
+        'dep-top'
+    ]
+    assert tsh.dependants(engine, 'dep-middle-right') == [
+        'dep-top'
+    ]
+    assert tsh.dependants(engine, 'dep-bottom') == [
+        'dep-middle-left',
+        'dep-middle-right',
+        'dep-top'
+    ]
 
 
 # groups

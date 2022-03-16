@@ -135,7 +135,7 @@ class timeseries(basets):
                 f'values ('
                 f' (select id from "{self.namespace}".formula where name = %(name)s),'
                 f' (select id from "{self.namespace}".formula where name = %(dep)s)'
-                f')',
+                f') on conflict do nothing',
                 name=name,
                 dep=dep
             )
