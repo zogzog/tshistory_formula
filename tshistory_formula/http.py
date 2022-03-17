@@ -49,13 +49,6 @@ register_formula.add_argument(
     default=True,
     help='fail if the referenced series do not exist'
 )
-register_formula.add_argument(
-    # note: `update` won't work as it is a method of parse objects
-    'force_update',
-    type=inputs.boolean,
-    default=False,
-    help='accept to update an existing formula if true'
-)
 
 # groups
 
@@ -132,8 +125,7 @@ class formula_httpapi(httpapi):
                     tsa.register_formula(
                         args.name,
                         args.text,
-                        reject_unknown=args.reject_unknown,
-                        update=args.force_update
+                        reject_unknown=args.reject_unknown
                     )
                 except TypeError as err:
                     api.abort(409, err.args[0])
@@ -267,14 +259,12 @@ class FormulaClient(Client):
     @unwraperror
     def register_formula(self, name,
                          formula,
-                         reject_unknown=True,
-                         update=False):
+                         reject_unknown=True):
         res = requests.patch(
             f'{self.uri}/series/formula', data={
                 'name': name,
                 'text': formula,
-                'reject_unknown': reject_unknown,
-                'force_update': update
+                'reject_unknown': reject_unknown
             }
         )
         if res.status_code == 400:

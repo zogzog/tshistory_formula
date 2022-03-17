@@ -155,15 +155,12 @@ class timeseries(basets):
         ).fetchall()]
 
     @tx
-    def register_formula(self, cn, name, formula,
-                         reject_unknown=True, update=False):
-        if not update:
-            assert not self.formula(cn, name), f'`{name}` already exists'
-        update = self.exists(cn, name)
-        if update and self.type(cn, name) == 'primary':
+    def register_formula(self, cn, name, formula, reject_unknown=True):
+        if self.exists(cn, name) and self.type(cn, name) == 'primary':
             raise TypeError(
                 f'primary series `{name}` cannot be overriden by a formula'
             )
+
         # basic syntax check
         tree = parse(formula)
         # this normalizes the formula

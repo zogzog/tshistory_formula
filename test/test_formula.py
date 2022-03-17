@@ -220,8 +220,7 @@ def test_user_meta(engine, tsh):
     tsh.register_formula(
         engine,
         'test_user_meta',
-        '(+ 3 (naive (series "user_metadata")))',
-        update=True
+        '(+ 3 (naive (series "user_metadata")))'
     )
     meta = tsh.metadata(engine, 'test_user_meta')
     # user meta preserved, core meta correctly updated
@@ -310,11 +309,11 @@ def test_content_hash(engine, tsh):
     assert ch == 'decd3af0875b80598a1a25770531b7801ac84d3a'
 
     # identical
-    tsh.register_formula(engine, 'hash-me', '(+ 2 (series "test"))', False, True)
+    tsh.register_formula(engine, 'hash-me', '(+ 2 (series "test"))', False)
     ch = tsh.content_hash(engine, 'hash-me')
     assert ch == 'decd3af0875b80598a1a25770531b7801ac84d3a'
 
-    tsh.register_formula(engine, 'hash-me', '(+ 2 (series "test-2"))', False, True)
+    tsh.register_formula(engine, 'hash-me', '(+ 2 (series "test-2"))', False)
     ch = tsh.content_hash(engine, 'hash-me')
     assert ch == 'e68cfc12a9953422db886c96378e485f1e2504c8'
 
@@ -323,14 +322,9 @@ def test_base_api(engine, tsh):
     tsh.register_formula(engine, 'test_plus_two', '(+ 2 (series "test"))', False)
     tsh.register_formula(engine, 'test_three_plus', '(+ 3 (series "test"))', False)
 
-    with pytest.raises(AssertionError):
-        tsh.register_formula(engine, 'test_plus_two', '(+ 2 (series "test"))',
-                             reject_unknown=False,
-                             update=False)
     # accept an update
     tsh.register_formula(engine, 'test_plus_two', '(+ 2 (series "test"))',
-                         reject_unknown=False,
-                         update=True)
+                         reject_unknown=False)
 
     test = pd.Series(
         [1, 2, 3],
@@ -1889,8 +1883,7 @@ def test_dependants(engine, tsh):
         '(add'
         ' (series "dep-middle-left")'
         ' (series "dep-middle-right")'
-        ' (series "dep-bottom"))',
-        update=True
+        ' (series "dep-bottom"))'
     )
     assert tsh.dependants(engine, 'dep-top') == []
     assert tsh.dependants(engine, 'dep-middle-left') == [

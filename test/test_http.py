@@ -47,19 +47,10 @@ def test_series_formula(client):
     })
     assert res.status_code == 201
 
-    # update ?
+    # update
     res = client.patch('/series/formula', params={
         'name': 'new-formula',
         'text': '(+ 3 (series "test-formula"))'
-    })
-    assert res.status_code == 409
-    assert res.json['message'] == '`new-formula` already exists'
-
-    # update !
-    res = client.patch('/series/formula', params={
-        'name': 'new-formula',
-        'text': '(+ 3 (series "test-formula"))',
-        'force_update': True
     })
     assert res.status_code == 200
 
@@ -254,18 +245,9 @@ def test_formula(tsx, engine, tsh):
         reject_unknown=False
     )
 
-
-    with pytest.raises(AssertionError):
-        tsx.register_formula(
-            'new-formula',
-            '(+ 3 (series "in-a-formula"))',
-        )
-
-
     tsx.register_formula(
         'new-formula',
         '(+ 3 (series "in-a-formula"))',
-        update=True
     )
 
     series = tsx.get('new-formula')

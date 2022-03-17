@@ -759,8 +759,7 @@ def test_mul(engine, tsh):
     tsh.register_formula(
         engine,
         'multiply-aligned',
-        '(mul (series "mul-a") (series "mul-b" #:fill 1) (series "mul-c"))',
-        update=True
+        '(mul (series "mul-a") (series "mul-b" #:fill 1) (series "mul-c"))'
     )
     ts = tsh.get(engine, 'multiply-aligned')
     assert_df("""
@@ -805,8 +804,7 @@ def test_div(engine, tsh):
     tsh.register_formula(
         engine,
         'divide',
-        '(div (series "div-a") (series "div-b" #:fill 3))',
-        update=True
+        '(div (series "div-a") (series "div-b" #:fill 3))'
     )
     ts = tsh.get(engine, 'divide')
     assert_df("""

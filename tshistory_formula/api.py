@@ -17,8 +17,7 @@ NONETYPE = type(None)
 def register_formula(self,
                      name: str,
                      formula: str,
-                     reject_unknown: bool=True,
-                     update: bool=False) -> NONETYPE:
+                     reject_unknown: bool=True) -> NONETYPE:
     """Define a series as a named formula.
 
     e.g. `register_formula('sales.eu', '(add (series "sales.fr") (series "sales.be"))')`
@@ -29,8 +28,7 @@ def register_formula(self,
         self.engine,
         name,
         formula,
-        reject_unknown=reject_unknown,
-        update=update
+        reject_unknown=reject_unknown
     )
 
 
