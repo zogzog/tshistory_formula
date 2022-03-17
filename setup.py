@@ -33,6 +33,7 @@ setup(name='tshistory_formula',
           'test-formula=tshistory_formula.cli:test_formula',
           'formula-init-db=tshistory_formula.cli:init_db',
           'migrate-to-formula-groups=tshistory_formula.cli:migrate_to_groups',
+          'migrate-to-content-cache=tshistory_formula.cli:migrate_to_content_hash',
           'shell=tshistory_formula.cli:shell'
       ]},
       classifiers=[

@@ -182,6 +182,20 @@ def migrate_to_groups(db_uri, namespace='tsh'):
         cn.execute(sql)
 
 
+@click.command(name='migrate-to-content-hash')
+@click.argument('db-uri')
+@click.option('--namespace', default='tsh')
+def migrate_to_content_hash(db_uri, namespace='tsh'):
+    engine = create_engine(find_dburi(db_uri))
+
+    sql = f"""
+    alter table "{self.namespace}".formula add column contenthash text not null;
+    """
+
+    with engine.begin() as cn:
+        cn.execute(sql)
+
+
 @click.command(name='rename-operators')
 @click.argument('db-uri')
 @click.option('--namespace', default='tsh')

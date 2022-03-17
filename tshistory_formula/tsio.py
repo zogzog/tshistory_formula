@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import timedelta
+import hashlib
 import itertools
 import json
 
@@ -165,6 +166,7 @@ class timeseries(basets):
             )
         # basic syntax check
         tree = parse(formula)
+        # this normalizes the formula
         formula = serialize(tree)
 
         # bad operators
@@ -198,15 +200,21 @@ class timeseries(basets):
             )
 
         tzaware = self.check_tz_compatibility(cn, tree)
+        ch = hashlib.sha1(
+            serialize(
+                self._expanded_formula(cn, formula)
+            ).encode()
+        ).hexdigest()
         sql = (f'insert into "{self.namespace}".formula '
-               '(name, text) '
-               'values (%(name)s, %(text)s) '
+               '(name, text, contenthash) '
+               'values (%(name)s, %(text)s, %(contenthash)s) '
                'on conflict (name) do update '
-               'set text = %(text)s')
+               'set text = %(text)s, contenthash=%(contenthash)s')
         cn.execute(
             sql,
             name=name,
-            text=formula
+            text=formula,
+            contenthash=ch
         )
 
         self.register_dependants(cn, name, tree)
@@ -237,6 +245,13 @@ class timeseries(basets):
             'value_dtype': '<f8',
             'value_type': 'float64'
         }
+
+    def content_hash(self, cn, name):
+        return cn.execute(
+            f'select contenthash from "{self.namespace}".formula '
+            f'where name=%(name)s',
+            name=name
+        ).scalar()
 
     def formula(self, cn, name):
         formula = cn.execute(

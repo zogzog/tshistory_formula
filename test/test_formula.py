@@ -304,6 +304,21 @@ def test_normalization(engine, tsh):
     assert form == '(add (series "normalize") (series "normalize"))'
 
 
+def test_content_hash(engine, tsh):
+    tsh.register_formula(engine, 'hash-me', '(+ 2 (series "test"))', False)
+    ch = tsh.content_hash(engine, 'hash-me')
+    assert ch == 'decd3af0875b80598a1a25770531b7801ac84d3a'
+
+    # identical
+    tsh.register_formula(engine, 'hash-me', '(+ 2 (series "test"))', False, True)
+    ch = tsh.content_hash(engine, 'hash-me')
+    assert ch == 'decd3af0875b80598a1a25770531b7801ac84d3a'
+
+    tsh.register_formula(engine, 'hash-me', '(+ 2 (series "test-2"))', False, True)
+    ch = tsh.content_hash(engine, 'hash-me')
+    assert ch == 'e68cfc12a9953422db886c96378e485f1e2504c8'
+
+
 def test_base_api(engine, tsh):
     tsh.register_formula(engine, 'test_plus_two', '(+ 2 (series "test"))', False)
     tsh.register_formula(engine, 'test_three_plus', '(+ 3 (series "test"))', False)
