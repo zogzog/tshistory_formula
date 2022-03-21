@@ -1071,28 +1071,61 @@ class timeseries(basets):
         if not self.group_exists(cn, name):
             return None
         formula = self.group_formula(cn, name)
+
+        if formula:
+            tree = parse(formula)
+            groups_and_series = self.find_groups_and_series(cn, tree)
+            allrevs = []
+            for name, info in groups_and_series.items():
+                operator_name = str(info[0])
+                if operator_name == 'group':
+                    if not self.group_exists(cn, name):
+                        continue
+                    allrevs += self.group_insertion_dates(cn, name, **bounds)
+                elif operator_name == 'series':
+                    if not self.exists(cn, name):
+                        continue
+                    allrevs += self.insertion_dates(cn, name, **bounds)
+                elif operator_name in GAUTO:
+                    idates_func = GIDATES[operator_name]
+                    allrevs += idates_func(cn, self, tree, **bounds)
+
+            return sorted(set(allrevs))
+
+        bindinfo = self.bindings_for(
+            cn, name
+        )
+
+        if bindinfo:
+            # hijacked formula
+            # we only return the idates when all the groups are present
+            # This API point merely provide the definition period
+            # where the hijacking is fully usable (and backtestable)
+            groups_names = bindinfo[1]['group']
+            all_idates = [
+                self.group_insertion_dates(cn, gn, **bounds)
+                for gn in groups_names
+            ]
+            first_date_with_all_presents = max(
+                min(dates)
+                for dates in all_idates
+            )
+            all_idates_bounded = [
+                {
+                    idate
+                    for idate in idates
+                    if idate > first_date_with_all_presents
+                 }
+                for idates in all_idates
+            ]
+            final_dates = set()
+            for dates in all_idates_bounded:
+                final_dates = final_dates.union(dates)
+            return sorted(final_dates)
+
         # primaries
-        if not formula:
-            return super().group_insertion_dates(cn, name, **bounds)
+        return super().group_insertion_dates(cn, name, **bounds)
 
-        tree = parse(formula)
-        groups_and_series = self.find_groups_and_series(cn, tree)
-        allrevs = []
-        for name, info in groups_and_series.items():
-            operator_name = str(info[0])
-            if operator_name == 'group':
-                if not self.group_exists(cn, name):
-                    continue
-                allrevs += self.group_insertion_dates(cn, name, **bounds)
-            elif operator_name == 'series':
-                if not self.exists(cn, name):
-                    continue
-                allrevs += self.insertion_dates(cn, name, **bounds)
-            elif operator_name in GAUTO:
-                idates_func = GIDATES[operator_name]
-                allrevs += idates_func(cn, self, tree, **bounds)
-
-        return sorted(set(allrevs))
 
     @tx
     def group_history(self, cn, name,

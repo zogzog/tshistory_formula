@@ -2448,3 +2448,67 @@ def test_group_bound_formula(engine, tsh):
     assert tsh.group_metadata(engine, 'hijacking') is None
     with pytest.raises(AssertionError):
         tsh.update_group_metadata(engine, 'hijacking', {'foo': 'bar'})
+
+
+def test_group_bound_history(engine, tsh):
+    # formula with 3 series (a, b, c)
+    # hijacked by two groups a and b
+
+    # series
+    for idx in range(10):
+        idate = utcdt(2022, 1, idx+1)
+        ts = pd.Series(
+            [idx] * 5,
+            index=pd.date_range(idate, periods=5, freq='D')
+        )
+        for sn in ('series-a', 'series-b', 'series-c'):
+            tsh.update(engine, ts, sn, 'test', insertion_date=idate)
+
+    # groups
+    for idx in range(5):
+        idate = utcdt(2022, 4, idx+1)
+        df = gengroup(3, from_date=idate, length=3, freq='D', seed=idx)
+        tsh.group_replace(engine, df, 'group-a', 'test', insertion_date=idate)
+
+    for idx in range(5):
+        idate = utcdt(2022, 4, idx+3)
+        df = gengroup(3, from_date=idate, length=3, freq='D', seed=idx)
+        tsh.group_replace(
+            engine,
+            df + 3.14,
+            'group-b',
+            'test',
+            insertion_date=idate + timedelta(hours=1)
+        )
+
+    tsh.register_formula(
+        engine,
+        'formula_series_history',
+        '(add (series "series-a") (series "series-b") (series "series-c"))'
+    )
+
+    binding = pd.DataFrame(
+        [
+            ['series-a', 'group-a', 'history'],
+            ['series-b', 'group-b', 'history'],
+        ],
+        columns=('series', 'group', 'family')
+    )
+
+    tsh.register_formula_bindings(
+        engine,
+        'formula_group_history',
+        'formula_series_history',
+        binding
+    )
+
+    idates = tsh.group_insertion_dates(engine, 'formula_group_history')
+
+    assert idates == [
+        pd.Timestamp('2022-04-04 00:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-04-04 01:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-04-05 00:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-04-05 01:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-04-06 01:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-04-07 01:00:00+0000', tz='UTC'),
+    ]
