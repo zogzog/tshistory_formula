@@ -1,5 +1,6 @@
 import json
 from pprint import pprint
+import hashlib
 
 import click
 import pandas as pd
@@ -186,14 +187,45 @@ def migrate_to_groups(db_uri, namespace='tsh'):
 @click.argument('db-uri')
 @click.option('--namespace', default='tsh')
 def migrate_to_content_hash(db_uri, namespace='tsh'):
+    from psyl import lisp
     engine = create_engine(find_dburi(db_uri))
+    tsh = timeseries(namespace)
 
-    sql = f"""
-    alter table "{self.namespace}".formula add column contenthash text not null;
-    """
+    chs = []
+    series = engine.execute(
+        f'select name, text from "{namespace}".formula'
+    ).fetchall()
+    print(f'Preparing {len(series)}.')
+
+    for idx, (name, text) in enumerate(series):
+        print(idx, name)
+        ch = hashlib.sha1(
+            lisp.serialize(
+                tsh._expanded_formula(engine, text)
+            ).encode()
+        ).hexdigest()
+        chs.append(
+            {'name': name, 'contenthash': ch}
+        )
+
+    sql = (
+        f'alter table "{namespace}".formula '
+        'add column if not exists contenthash text not null default \'\';'
+    )
 
     with engine.begin() as cn:
         cn.execute(sql)
+        cn.execute(
+            f'update "{namespace}".formula '
+            f'set contenthash = %(contenthash)s '
+            f'where name = %(name)s',
+            chs
+        )
+
+        cn.execute(
+            f'alter table "{namespace}".formula '
+            f'alter column contenthash drop default;'
+        )
 
 
 @click.command(name='rename-operators')
