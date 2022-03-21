@@ -2456,7 +2456,7 @@ def test_group_bound_history(engine, tsh):
 
     # series
     for idx in range(10):
-        idate = utcdt(2022, 1, idx+1)
+        idate = utcdt(2022, 4, idx+1)
         ts = pd.Series(
             [idx] * 5,
             index=pd.date_range(idate, periods=5, freq='D')
@@ -2512,3 +2512,23 @@ def test_group_bound_history(engine, tsh):
         pd.Timestamp('2022-04-06 01:00:00+0000', tz='UTC'),
         pd.Timestamp('2022-04-07 01:00:00+0000', tz='UTC'),
     ]
+
+    group_past = tsh.group_get(
+        engine,
+        'formula_group_history',
+        revision_date=utcdt(2022, 4, 5, 1)
+    )
+
+    hist = tsh.group_history(
+        engine,
+        'formula_group_history'
+    )
+
+    assert_df("""
+                               0      1      2
+2022-04-05 00:00:00+00:00  13.14  15.14  17.14
+2022-04-06 00:00:00+00:00  16.14  18.14  20.14
+2022-04-07 00:00:00+00:00  19.14  21.14  23.14
+""", group_past)
+
+    assert hist[utcdt(2022, 4, 5, 1)].equals(group_past)
