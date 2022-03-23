@@ -2122,6 +2122,16 @@ insertion_date            value_date
     # (there are usually no concordance between the scenarios from one run to another)
     # It may call for more developpments....
 
+    # out of bounds:
+    assert {} == tsh.group_history(
+        engine,
+        'history_sum',
+        to_insertion_date=utcdt(1978, 7, 15)
+    )
+
+    # group does not exists
+    assert tsh.group_history(engine, 'missing-group') is None
+
 
 def test_group_and_series_formula_history(engine, tsh):
     for idx, idate in enumerate(

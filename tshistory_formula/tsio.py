@@ -1058,6 +1058,8 @@ class timeseries(basets):
 
     @tx
     def group_insertion_dates(self, cn, name, **bounds):
+        if not self.group_exists(cn, name):
+            return None
         formula = self.group_formula(cn, name)
         # primaries
         if not formula:
@@ -1094,6 +1096,10 @@ class timeseries(basets):
             from_insertion_date=from_insertion_date,
             to_insertion_date=to_insertion_date
         )
+        if idates is None:
+            return None
+        if not len(idates):
+            return {}
         history = {}
         for idate in idates:
             history[idate] = self.group_get(
