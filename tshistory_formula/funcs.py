@@ -373,11 +373,11 @@ def _constant(__interpreter__, value, fromdate, todate, freq, revdate):
 
     mindate = getargs.get('from_value_date')
     if mindate:
-        fromdate = max(ensuretz(mindate), fromdate)
+        mindate = ensuretz(mindate)
 
     maxdate = getargs.get('to_value_date')
     if maxdate:
-        todate = min(ensuretz(maxdate), todate)
+        maxdate = ensuretz(maxdate)
 
     dates = pd.date_range(
         start=fromdate,
@@ -390,7 +390,7 @@ def _constant(__interpreter__, value, fromdate, todate, freq, revdate):
         name='constant',
         index=dates,
         dtype='float64'
-    )
+    ).loc[mindate:maxdate]
 
 
 @metadata('constant')
