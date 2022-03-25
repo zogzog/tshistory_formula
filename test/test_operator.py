@@ -1902,6 +1902,18 @@ def test_constant(engine, tsh):
     ts = tsh.get(
         engine,
         'constant-1',
+        from_value_date=utcdt(2020, 1, 1, 6),
+        to_value_date=utcdt(2020, 1, 2, 6)
+    )
+
+    assert_df("""
+2020-01-01 06:00:00+00:00    1.0
+2020-01-02 06:00:00+00:00    1.0
+""", ts)
+
+    ts = tsh.get(
+        engine,
+        'constant-1',
         from_value_date=dt(2020, 1, 2),
         to_value_date=dt(2020, 1, 2)
     )
