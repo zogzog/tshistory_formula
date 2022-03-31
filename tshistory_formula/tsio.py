@@ -1215,9 +1215,9 @@ class timeseries(basets):
             self.group_get(
                 cn,
                 groupname,
-                from_value_date=None,
-                to_value_date=None,
-                revision_date=None
+                from_value_date=from_value_date,
+                to_value_date=to_value_date,
+                revision_date=revision_date,
             ),
             family
         )
