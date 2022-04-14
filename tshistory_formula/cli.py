@@ -260,6 +260,27 @@ def rename_operators(db_uri, namespace='tsh'):
         )
 
 
+@click.command(name='migrate-to-dependants')
+@click.argument('db-uri')
+@click.option('--namespace', default='tsh')
+def migrate_to_dependants(db_uri, namespace='tsh'):
+    engine = create_engine(find_dburi(db_uri))
+
+    sql = """
+create table if not exists "{ns}".dependant (
+  sid int not null references "{ns}".formula(id) on delete cascade,
+  needs int not null references "{ns}".formula(id) on delete cascade,
+  unique(sid, needs)
+);
+
+create index if not exists "ix_{ns}_dependant_sid" on "{ns}".dependant (sid);
+create index if not exists "ix_{ns}_dependant_needs" on "{ns}".dependant (needs);
+""".format(ns=namespace)
+
+    with engine.begin() as cn:
+        cn.execute(sql)
+
+
 @click.command(name='shell')
 @click.argument('db-uri')
 @click.option('--namespace', default='tsh')
