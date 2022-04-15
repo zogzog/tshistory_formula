@@ -280,6 +280,14 @@ create index if not exists "ix_{ns}_dependant_needs" on "{ns}".dependant (needs)
     with engine.begin() as cn:
         cn.execute(sql)
 
+    series = engine.execute(
+        f'select name, text from "{namespace}".formula'
+    ).fetchall()
+    tsh = timeseries(namespace)
+
+    for name, text in series:
+        tsh.register_dependants(engine, name, parse(text))
+
 
 @click.command(name='shell')
 @click.argument('db-uri')
