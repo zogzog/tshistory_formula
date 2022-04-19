@@ -229,6 +229,16 @@ class timeseries(basets):
         meta = dict(meta, **coremeta)
         self.update_metadata(cn, name, meta, internal=True)
 
+    def live_content_hash(self, cn, name):
+        return hashlib.sha1(
+            serialize(
+                self._expanded_formula(
+                    cn,
+                    self.formula(cn, name)
+                )
+            ).encode()
+        ).hexdigest()
+
     def default_meta(self, tzaware):
         if tzaware:
             return {

@@ -316,10 +316,12 @@ def test_content_hash(engine, tsh):
     tsh.register_formula(engine, 'hash-me', '(+ 2 (series "test"))', False)
     ch = tsh.content_hash(engine, 'hash-me')
     assert ch == 'decd3af0875b80598a1a25770531b7801ac84d3a'
+    assert ch == tsh.live_content_hash(engine, 'hash-me')
 
     tsh.register_formula(engine, 'hash-me', '(+ 2 (series "test-2"))', False)
     ch = tsh.content_hash(engine, 'hash-me')
     assert ch == 'e68cfc12a9953422db886c96378e485f1e2504c8'
+    assert ch == tsh.live_content_hash(engine, 'hash-me')
 
 
 def test_base_api(engine, tsh):
