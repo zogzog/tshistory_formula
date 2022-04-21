@@ -239,25 +239,34 @@ def rename_operators(db_uri, namespace='tsh'):
         f'select name, text from "{namespace}".formula'
     ).fetchall()
 
-    rewritten = []
-    print(f'Transforming {len(series)} series.')
-    for idx, (name, text) in enumerate(series):
-        print(idx, name, text)
-        tree0 = parse(text)
-        tree1 = rename_operator(tree0, 'min', 'row-min')
-        tree2 = rename_operator(tree1, 'max', 'row-max')
-        tree3 = rename_operator(tree2, 'timedelta', 'shifted')
-        tree4 = rename_operator(tree3, 'shift', 'time-shifted')
-        rewritten.append(
-            {'name': name, 'text': serialize(tree4)}
-        )
-    with engine.begin() as cn:
-        cn.execute(
-            f'update "{namespace}".formula '
-            f'set text = %(text)s '
-            f'where name = %(name)s',
-            rewritten
-        )
+    def rename(series):
+        rewritten = []
+        print(f'Transforming {len(series)} series.')
+        for idx, (name, text) in enumerate(series):
+            print(idx, name, text)
+            tree0 = parse(text)
+            tree1 = rename_operator(tree0, 'min', 'row-min')
+            tree2 = rename_operator(tree1, 'max', 'row-max')
+            tree3 = rename_operator(tree2, 'timedelta', 'shifted')
+            tree4 = rename_operator(tree3, 'shift', 'time-shifted')
+            rewritten.append(
+                {'name': name, 'text': serialize(tree4)}
+            )
+        with engine.begin() as cn:
+            cn.execute(
+                f'update "{namespace}".formula '
+                f'set text = %(text)s '
+                f'where name = %(name)s',
+                rewritten
+            )
+
+    rename(series)
+
+    series = engine.execute(
+        f'select name, text from "{namespace}".group_formula'
+    ).fetchall()
+
+    rename(series)
 
 
 @click.command(name='migrate-to-dependants')
