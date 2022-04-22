@@ -318,13 +318,20 @@ class timeseries(basets):
         )
         return ts
 
-    def _expanded_formula(self, cn, formula, stopnames=(), qargs={}):
-        return helper.inject_toplevel_bindings(
-            helper.expanded(
-                self, cn, parse(formula), stopnames=stopnames
-            ),
-            qargs
+    def _expanded_formula(self, cn, formula, stopnames=(), qargs=None):
+        exp = helper.expanded(
+            self,
+            cn,
+            parse(formula),
+            stopnames=stopnames,
+            scopes=qargs is not None
         )
+        if qargs is not None:
+            return helper.inject_toplevel_bindings(
+                exp,
+                qargs
+            )
+        return exp
 
     def expanded_formula(self, cn, name, stopnames=(), **kw):
         formula = self.formula(cn, name)

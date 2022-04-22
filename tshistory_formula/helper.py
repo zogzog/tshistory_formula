@@ -81,21 +81,21 @@ def inject_toplevel_bindings(tree, qargs):
     return top
 
 
-def expanded(tsh, cn, tree, stopnames=(), scoped=None):
+def expanded(tsh, cn, tree, stopnames=(), scoped=None, scopes=True):
     # handle scoped parameter (internal memo)
     scoped = set() if scoped is None else scoped
 
     # base case: check the current operation
     op = tree[0]
 
-    if op in ARGSCOPES:
+    if scopes and op in ARGSCOPES:
         if id(tree) not in scoped:
             # we need to avoid an infinite recursion
             # as the new tree contains the old ...
             scoped.add(id(tree))
             rewriter = ARGSCOPES[op]
             return rewriter(
-                expanded(tsh, cn, tree, stopnames, scoped)
+                expanded(tsh, cn, tree, stopnames, scoped, scopes)
             )
 
     if op == 'series':
@@ -108,16 +108,16 @@ def expanded(tsh, cn, tree, stopnames=(), scoped=None):
             formula = tsh.formula(cn, name)
             options = extract_auto_options(tree)
             if not options:
-                return expanded(tsh, cn, parse(formula), stopnames)
+                return expanded(tsh, cn, parse(formula), stopnames, scopes=scopes)
             return [
                 Symbol('options'),
-                expanded(tsh, cn, parse(formula), stopnames),
+                expanded(tsh, cn, parse(formula), stopnames, scopes=scopes),
             ] + options
 
     newtree = []
     for item in tree:
         if isinstance(item, list):
-            newtree.append(expanded(tsh, cn, item, stopnames))
+            newtree.append(expanded(tsh, cn, item, stopnames, scopes=scopes))
         else:
             newtree.append(item)
     return newtree

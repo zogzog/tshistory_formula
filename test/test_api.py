@@ -95,6 +95,14 @@ insertion_date             value_date
         ' (+ 3 (+ 2 (series "remote-series")))'
         ')'
     )
+    expanded = tsa.formula(
+        'remote-formula-local-formula',
+        display=True,
+        expanded=True
+    )
+    assert expanded == (
+        '(+ 3 (+ 2 (series "remote-series")))'
+    )
 
 
 def test_formula_components(tsa):

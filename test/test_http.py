@@ -264,7 +264,10 @@ def test_formula(tsx, engine, tsh):
         '2-levels',
         '(+ 5 (series "new-formula"))'
     )
-    assert tsx.formula('2-levels', True) == (
+    assert tsx.formula('2-levels', display=True, expanded=True) == (
+        '(+ 5 (+ 3 (series "in-a-formula")))'
+    )
+    assert tsx.formula('2-levels', expanded=True) == (
         '(let revision_date nil from_value_date nil to_value_date nil'
         ' (+ 5 (+ 3 (series "in-a-formula")))'
         ')'

@@ -2,7 +2,10 @@ from typing import Optional, Dict
 
 import pandas as pd
 
-from psyl.lisp import parse
+from psyl.lisp import (
+    parse,
+    serialize
+)
 from tshistory.util import extend
 from tshistory.api import (
     altsources,
@@ -35,26 +38,45 @@ def register_formula(self,
 @extend(mainsource)
 def formula(self,
             name: str,
+            display: bool=False,
             expanded: bool=False) -> Optional[str]:
     """Get the formula associated with a name.
 
     """
     form = self.tsh.formula(self.engine, name)
-    if form and expanded:
-        form = self.tsh.expanded_formula(self.engine, name)
-    if form is None:
-        form = self.othersources.formula(name, expanded=expanded)
-    return form
+    if form:
+        if not expanded:
+            return form
+
+        tree = self.tsh._expanded_formula(
+            self.engine,
+            form,
+            qargs=None if display else {}
+        )
+        if tree:
+            return serialize(tree)
+
+    print(name, '-> to remote')
+    return self.othersources.formula(
+        name,
+        display=display,
+        expanded=expanded
+    )
 
 
 @extend(altsources)
 def formula(self,
             name: str,
+            display: bool=False,
             expanded: bool=False) -> Optional[str]:
     source = self._findsourcefor(name)
     if source is None:
         return
-    return source.tsa.formula(name, expanded=expanded)
+    return source.tsa.formula(
+        name,
+        display=display,
+        expanded=expanded
+    )
 
 
 @extend(mainsource)

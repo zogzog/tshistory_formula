@@ -28,6 +28,13 @@ formula.add_argument(
     help='return the recursively expanded formula'
 )
 
+formula.add_argument(
+    'display',
+    type=inputs.boolean,
+    default=False,
+    help='return undecorated formula (for display purposes)'
+)
+
 formula_components = base.copy()
 formula_components.add_argument(
     'expanded',
@@ -112,7 +119,11 @@ class formula_httpapi(httpapi):
                 if not tsa.type(args.name):
                     api.abort(409, f'`{args.name}` exists but is not a formula')
 
-                form = tsa.formula(args.name, args.expanded)
+                form = tsa.formula(
+                    args.name,
+                    args.display,
+                    args.expanded
+                )
                 return form, 200
 
             @api.expect(register_formula)
@@ -229,10 +240,11 @@ class formula_httpapi(httpapi):
 class FormulaClient(Client):
 
     @unwraperror
-    def formula(self, name, expanded=False):
+    def formula(self, name, display=False, expanded=False):
         res = requests.get(
             f'{self.uri}/series/formula', params={
                 'name': name,
+                'display': display,
                 'expanded': expanded
             }
         )
