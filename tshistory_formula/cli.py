@@ -235,10 +235,6 @@ def rename_operators(db_uri, namespace='tsh'):
     engine = create_engine(find_dburi(db_uri))
     tsh = timeseries(namespace)
 
-    series = engine.execute(
-        f'select name, text from "{namespace}".formula'
-    ).fetchall()
-
     def rename(series):
         rewritten = []
         print(f'Transforming {len(series)} series.')
@@ -260,13 +256,19 @@ def rename_operators(db_uri, namespace='tsh'):
                 rewritten
             )
 
-    rename(series)
+    series = engine.execute(
+        f'select name, text from "{namespace}".formula'
+    ).fetchall()
+
+    if series:
+        rename(series)
 
     series = engine.execute(
         f'select name, text from "{namespace}".group_formula'
     ).fetchall()
 
-    rename(series)
+    if series:
+        rename(series)
 
 
 @click.command(name='migrate-to-dependants')
