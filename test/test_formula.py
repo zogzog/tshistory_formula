@@ -1307,6 +1307,33 @@ def test_expanded(engine, tsh):
     )
 
 
+def test_slice_naive(engine, tsh):
+    ts_hourly = pd.Series(
+        [1.0] * 24 * 3,
+        index=pd.date_range(utcdt(2022, 4, 1), periods=24 * 3, freq='H')
+    )
+    tsh.update(engine, ts_hourly, 'ts.hourly', 'test')
+
+    formula = (
+        '(slice '
+        ' (naive (series "ts.hourly") "CET")'
+        ' #:fromdate (date "2022-01-01")'
+        ')'
+    )
+    tsh.register_formula(engine, 'slice.naive', formula)
+
+    with pytest.raises(ValueError) as err:
+        tsh.get(
+            engine,
+            'slice.naive',
+            from_value_date=dt(2022, 4, 2),
+            to_value_date=dt(2022, 4, 3),
+        )
+    assert err.value.args[0] == (
+        'name: "ts.hourly", revdate: None (from "Both dates must have the same UTC offset")'
+    )
+
+
 def test_history_nr(engine, tsh):
     ts1 = pd.Series(
         [1.0] * 24,
