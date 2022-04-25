@@ -1322,16 +1322,14 @@ def test_slice_naive(engine, tsh):
     )
     tsh.register_formula(engine, 'slice.naive', formula)
 
-    with pytest.raises(ValueError) as err:
-        tsh.get(
-            engine,
-            'slice.naive',
-            from_value_date=dt(2022, 4, 2),
-            to_value_date=dt(2022, 4, 3),
-        )
-    assert err.value.args[0] == (
-        'name: "ts.hourly", revdate: None (from "Both dates must have the same UTC offset")'
+    ts = tsh.get(
+        engine,
+        'slice.naive',
+        from_value_date=dt(2022, 4, 2),
+        to_value_date=dt(2022, 4, 3),
     )
+    assert ts.index.min() == pd.Timestamp('2022-04-02 02:00:00')
+    assert ts.index.max() == pd.Timestamp('2022-04-03 00:00:00')
 
 
 def test_history_nr(engine, tsh):

@@ -201,7 +201,7 @@ def tzaware_date(dt: pd.Timestamp, tzone: str) -> pd.Timestamp:
     if dt.tzinfo is None:
         return pd.Timestamp(dt, tz=tzone)
     # not naive, we don't touch it
-    return dt
+    return dt.tz_convert(tzone)
 
 
 def dedupe(series):
