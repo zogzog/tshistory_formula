@@ -255,6 +255,31 @@ def test_series_options(engine, tsh):
     assert ts.options == {}
 
 
+def test_fill_limit_option(engine, tsh):
+    shortts = pd.Series(
+        [1, 1, 1],
+        index=pd.date_range(dt(2022, 1, 1), periods=3, freq='D')
+    )
+    longts = pd.Series(
+        [2, 2, 2, 2, 2],
+        index=pd.date_range(dt(2022, 1, 1), periods=5, freq='D')
+    )
+    tsh.update(engine, shortts, 'short-ts', 'Babar')
+    tsh.update(engine, longts, 'long-ts', 'Babar')
+    tsh.register_formula(
+        engine,
+        'fill-limit-base',
+        '(add (series "short-ts" #:fill 7 #:limit 1)'
+        '     (series "long-ts"))'
+    )
+    ts = tsh.get(engine, 'fill-limit-base')
+    assert_df("""
+2022-01-01    3.0
+2022-01-02    3.0
+2022-01-03    3.0
+2022-01-04    9.0""", ts)
+
+
 def test_override_primary(engine, tsh):
     test = pd.Series(
         [1, 2, 3],

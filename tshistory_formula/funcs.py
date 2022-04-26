@@ -169,7 +169,8 @@ def series(__interpreter__,
         compatible_date(tzaware, __to_value_date__)
     ]
     ts.options = {
-        'fill': fill
+        'fill': fill,
+        'limit': limit
     }
     if weight is not None:
         ts.options['weight'] = weight
@@ -515,14 +516,18 @@ def _fill(df, colname, fillopt):
     which can be a int/float or a coma separated string
     like e.g. 'ffill,bfill'
     """
-    if isinstance(fillopt, str):
-        for method in fillopt.split(','):
+    filler = fillopt['fill']
+    limit = fillopt.get('limit')
+    if isinstance(filler, str):
+        for method in filler.split(','):
             df[colname] = df[colname].fillna(
-                method=method.strip()
+                method=method.strip(),
+                limit=limit
             )
-    elif isinstance(fillopt, (int, float)):
+    elif isinstance(filler, (int, float)):
         df[colname] = df[colname].fillna(
-            value=fillopt
+            value=filler,
+            limit=limit
         )
 
 
@@ -538,19 +543,15 @@ def _group_series(*serieslist):
             return pd.DataFrame(dtype='float64')
 
         ts.name = f'{idx}'  # do something unique
-        fillopt = (
-            ts.options['fill']
-            if ts.options.get('fill') is not None
-            else None
-        )
-        opts[ts.name] = fillopt
+        opts[ts.name] = ts.options
         dfs.append(ts)
 
     df = pd.concat(dfs, axis=1, join='outer')
 
     # apply the filling rules
     for name, fillopt in opts.items():
-        _fill(df, name, fillopt)
+        if fillopt:
+            _fill(df, name, fillopt)
 
     return df
 
