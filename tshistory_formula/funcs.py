@@ -39,6 +39,7 @@ from tshistory_formula.interpreter import Interpreter
 @func('options')
 def options(series: pd.Series,
             fill: Union[str, Number, NONETYPE]=None,
+            limit: Optional[int]=None,
             weight: Optional[Number]=None) -> pd.Series:
     """
     The `options` operator takes a series and three keywords to modify
@@ -49,15 +50,24 @@ def options(series: pd.Series,
       `"ffill"` (forward-fill), `"bfill"` (backward-fill) or any
       floating value.
 
+    * `limit`: if `fill` is specified, this is the maximum number of
+      consecutive NaN values to forward/backward fill. In other words,
+      if there is a gap with more than this number of consecutive
+      NaNs, it will only be partially filled. If `fill` is not
+      specified, this is the maximum number of entries along the
+      entire axis where NaNs will be filled. Must be greater than 0 if
+      not None.
+
     * `weight` to provide a weight (float) value to be used by other
       operators like e.g. `row-mean`
 
-    The `fill` and `weight` options are put on the series object for
+    The `fill`, `limit` and `weight` options are put on the series object for
     later use.
 
     """
     series.options = {
-        'fill': fill
+        'fill': fill,
+        'limit': limit
     }
 
     if weight is not None:
@@ -104,6 +114,7 @@ def series(__interpreter__,
            __revision_date__,
            name: seriesname,
            fill: Union[str, Number, NONETYPE]=None,
+           limit: Optional[int]=None,
            weight: Optional[Number]=None) -> pd.Series:
     """
     The `series` operator accepts several keywords:
@@ -112,6 +123,14 @@ def series(__interpreter__,
       series will be `add`ed with others; accepted values are
       `"ffill"` (forward-fill), `"bfill"` (backward-fill) or any
       floating value.
+
+    * `limit`: if `fill` is specified, this is the maximum number of
+      consecutive NaN values to forward/backward fill. In other words,
+      if there is a gap with more than this number of consecutive
+      NaNs, it will only be partially filled. If `fill` is not
+      specified, this is the maximum number of entries along the
+      entire axis where NaNs will be filled. Must be greater than 0 if
+      not None.
 
     * `weight` to provide a weight (float) value to be used by other
       operators like e.g. `row-mean`

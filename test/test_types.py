@@ -57,6 +57,7 @@ def test_function_types():
     types = function_types(f)
     assert types == {
         'fill': 'Default[Union[str, Number]=None]',
+        'limit': 'Default[int=None]',
         'name': 'seriesname',
         'return': 'Series',
         'weight': 'Default[Number=None]'
@@ -165,6 +166,7 @@ def test_operators_types():
         'mul': {'return': 'Series', 'serieslist': 'Series'},
         'naive': {'return': 'Series', 'series': 'Series', 'tzone': 'str'},
         'options': {'fill': 'Default[Union[str, Number]=None]',
+                    'limit': 'Default[int=None]',
                     'return': 'Series',
                     'series': 'Series',
                     'weight': 'Default[Number=None]'},
@@ -187,6 +189,7 @@ def test_operators_types():
                     'serieslist': 'Series',
                     'skipna': 'Default[bool=True]'},
         'series': {'fill': 'Default[Union[str, Number]=None]',
+                   'limit': 'Default[int=None]',
                    'name': 'seriesname',
                    'return': 'Series',
                    'weight': 'Default[Number=None]'},
