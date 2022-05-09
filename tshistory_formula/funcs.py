@@ -377,12 +377,16 @@ def constant(__interpreter__,
     assert todate.tzinfo is not None
     assert revdate.tzinfo is not None
 
-    return _constant(__interpreter__, value, fromdate, todate, freq, revdate)
+    return _constant(__interpreter__,
+                     {'revision_date': __revision_date__,
+                      'from_value_date': __from_value_date__,
+                      'to_value_date': __to_value_date__},
+                     value, fromdate, todate, freq, revdate)
 
 
-def _constant(__interpreter__, value, fromdate, todate, freq, revdate):
+def _constant(__interpreter__, args, value, fromdate, todate, freq, revdate):
     getargs = __interpreter__.getargs
-    qrevdate = getargs.get('revision_date')
+    qrevdate = args.get('revision_date')
     if qrevdate and ensuretz(qrevdate) < revdate:
         return empty_series(True)
 
@@ -394,11 +398,11 @@ def _constant(__interpreter__, value, fromdate, todate, freq, revdate):
     if qtoidate and ensuretz(qtoidate) < revdate:
         return empty_series(True)
 
-    mindate = getargs.get('from_value_date')
+    mindate = args.get('from_value_date')
     if mindate:
         mindate = ensuretz(mindate)
 
-    maxdate = getargs.get('to_value_date')
+    maxdate = args.get('to_value_date')
     if maxdate:
         maxdate = ensuretz(maxdate)
 
@@ -432,7 +436,7 @@ def metadata(cn, tsh, tree):
 @history('constant')
 def constant_history(__interpreter__, value, fromdate, todate, freq, revdate):
     series = _constant(
-        __interpreter__, value, fromdate, todate, freq, revdate
+        __interpreter__, __interpreter__.getargs, value, fromdate, todate, freq, revdate
     )
     if len(series):
         return {
