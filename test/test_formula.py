@@ -863,7 +863,12 @@ def test_new_func(engine, tsh):
 def test_ifunc(engine, tsh):
 
     @func('shifter', auto=True)
-    def shifter(__interpreter__, name: str, days: int=0) -> pd.Series:
+    def shifter(__interpreter__,
+               __from_value_date__,
+               __to_value_date__,
+               __revision_date__,
+                name: str,
+                days: int=0) -> pd.Series:
         args = __interpreter__.getargs.copy()
         fromdate = args.get('from_value_date')
         todate = args.get('to_value_date')
@@ -1159,7 +1164,12 @@ def test_custom_metadata(engine, tsh):
 
 def test_custom_history(engine, tsh):
     @func('made-up-series', auto=True)
-    def madeup(__interpreter__, base: int, coeff: float=1.) -> pd.Series:
+    def madeup(__interpreter__,
+               __from_value_date__,
+               __to_value_date__,
+               __revision_date__,
+               base: int,
+               coeff: float=1.) -> pd.Series:
         return pd.Series(
             np.array([base, base + 1, base + 2]) * coeff,
             index=pd.date_range(dt(2019, 1, 1), periods=3, freq='D')
@@ -1247,31 +1257,20 @@ insertion_date             value_date
 
 
 def test_autotrophic_operators_history(engine, tsh):
-    @func('test-path', auto=True)
-    def test_path(base: int, coeff: float=1.) -> pd.Series:
-
-        # We don't get there
-        assert False
-
-        return pd.Series(
-            np.array([base, base + 1, base + 2]) * coeff,
-            index=pd.date_range(dt(2022, 1, 1), periods=3, freq='D')
-        )
-
     with pytest.raises(AssertionError) as err:
-        @history('test-path')
-        def test_path_history(__interpreter__, base, coeff=1.):
-            hist = {}
-            for i in (1, 2, 3):
-                hist[pd.Timestamp(f'2023-1-{i}', tz='utc')] = pd.Series(
-                    np.array([base + i, base + i + 1, base + i + 2]) * coeff,
-                    index=pd.date_range(dt(2022, 1, i), periods=3, freq='D')
-                )
-            return hist
+        @func('test-path', auto=True)
+        def test_path(__interpreter__,
+                      __from_value_date__,
+                      __revision_date__,
+                      base: int,
+                      coeff: float=1.) -> pd.Series:
+
+            # We don't get there
+            assert False
 
     assert err.value.args[0] == (
-        '`test-path` is an autotrophic operator with an history. '
-        'Its `func` getter should have an __interpreter__'
+        '`test-path` is an autotrophic operator. '
+        'It should have a `__to_value_date__` positional argument.'
     )
 
 
@@ -1440,7 +1439,10 @@ def test_history_autotrophic_nr(engine, tsh):
     )
 
     @func('hist-nr2-1', auto=True)
-    def histnr21(__interpreter__) -> pd.Series:
+    def histnr21(__interpreter__,
+                 __from_value_date__,
+                 __to_value_date__,
+                 __revision_date__) -> pd.Series:
         return ts2
 
     @metadata('hist-nr2-1')
@@ -1463,7 +1465,10 @@ def test_history_autotrophic_nr(engine, tsh):
         }
 
     @func('hist-nr2-2', auto=True)
-    def histnr22(__interpreter__) -> pd.Series:
+    def histnr22(__interpreter__,
+                 __from_value_date__,
+                 __to_value_date__,
+                 __revision_date__) -> pd.Series:
         return ts2 + 1
 
     @metadata('hist-nr2-2')
@@ -1525,7 +1530,10 @@ def test_history_auto_nr(engine, tsh):
     )
 
     @func('auto-operator', auto=True)
-    def auto_operator(__interpreter__) -> pd.Series:
+    def auto_operator(__interpreter__,
+                      __from_value_date__,
+                      __to_value_date__,
+                      __revision_date__) -> pd.Series:
         return ts2
 
     @metadata('auto-operator')
@@ -1585,7 +1593,9 @@ def test_forged_names():
 def test_extract_from_expr(engine, tsh):
 
     @func('extractme')
-    def extractme(a: str, b: int, date: pd.Timestamp, bar: str) -> type(None):
+    def extractme(
+            __a, __b, __c, __d,
+            a: str, b: int, date: pd.Timestamp, bar: str) -> type(None):
         pass
 
     tree = lisp.parse('(extractme "a" 42 #:bar "bar" #:date (date "2021-1-1"))')
@@ -1593,7 +1603,7 @@ def test_extract_from_expr(engine, tsh):
     assert fname == 'extractme'
     assert f == extractme
     assert isinstance(args[0], NullIntepreter)
-    assert args[1:] == ['a', 42]
+    assert args[4:] == ['a', 42]
     assert kw == {'bar': 'bar', 'date': '(date "2021-1-1")'}
 
     it = Interpreter(engine, tsh, {})
@@ -1602,16 +1612,13 @@ def test_extract_from_expr(engine, tsh):
     assert fname == 'extractme'
     assert f == extractme
     assert isinstance(args[0], NullIntepreter)
-    assert args[1:] == ['a', 42]
+    assert args[4:] == ['a', 42]
     assert kw == {
         'bar': 'bar',
         'date': '(date "2021-1-1")'
     }
 
-    name = name_of_expr(tree)
-    assert name.endswith(
-        '-b=a-date=42-bar=bar'
-    )
+    assert name_of_expr(tree) == 'extractme-a=a-b=42-date=(date "2021-1-1")-bar=bar'
 
 
 def test_history_auto_name_issue(engine, tsh):
@@ -1623,8 +1630,26 @@ def test_history_auto_name_issue(engine, tsh):
     )
 
     @func('hist-auto-name', auto=True)
-    def histautoname(__interpreter__, a:int, b:int=0) -> pd.Series:
+    def histautoname(__interpreter__,
+                     __from_value_date__,
+                     __to_value_date__,
+                     __revision_date__,
+                     a:int,
+                     b:int=0) -> pd.Series:
         return (ts + a + b) * 2
+
+    fname, funcobj, args, kwargs = _extract_from_expr(lisp.parse('(hist-auto-name 0 #:b 1)'))
+    assert fname == 'hist-auto-name'
+    assert args[1:] == [ # the NullIntepreter is not even comparable to itself, let's skip it
+        None,
+        None,
+        None,
+        0
+    ]
+    assert kwargs == {'b': 1}
+
+    forgedname = _name_from_signature_and_args(fname, funcobj, args, kwargs)
+    assert forgedname == 'hist-auto-name-a=0-b=1'
 
     @metadata('hist-auto-name')
     def histautoname_metadata(_cn, _tsh, tree):
@@ -1680,7 +1705,11 @@ def test_history_auto_name_subexpr(engine, tsh):
     )
 
     @func('hist-auto-subexpr', auto=True)
-    def histautoname(__interpreter__, date: pd.Timestamp) -> pd.Series:
+    def histautoname(__interpreter__,
+                     __from_value_date__,
+                     __to_value_date__,
+                     __revision_date__,
+                     date: pd.Timestamp) -> pd.Series:
         return ts
 
     @metadata('hist-auto-subexpr')

@@ -6,6 +6,7 @@ import dash_html_components as html
 from psyl.lisp import parse, serialize
 
 from tshistory_formula.interpreter import Interpreter
+from tshistory_formula.helper import inject_toplevel_bindings
 
 
 MAX_LENGTH = 15
@@ -25,7 +26,12 @@ class fancypresenter:
                 # attempt immediate expression interpretation
                 # (autotrophic operator)
                 i = Interpreter(tsa.engine, tsa.tsh, getargs)
-                ts = i.evaluate(expr)
+                ts = i.evaluate(
+                    inject_toplevel_bindings(
+                        expr,
+                        getargs
+                    )
+                )
                 if ts is None:
                     return pd.Series(name=name, dtype='float64')
                 ts.name = name

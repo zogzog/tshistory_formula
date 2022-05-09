@@ -96,7 +96,10 @@ def test_editor_pure_scalar_op(tsa):
 
 def test_editor_new_operator(tsa):
     @func('genrandomseries', auto=True)
-    def genrandomseries() -> pd.Series:
+    def genrandomseries(__interpreter__,
+                        __from_value_date__,
+                        __to_value_date__,
+                        __revision_date__) -> pd.Series:
         return pd.Series(
             [1.0, 2.0, 3.0],
             index=pd.date_range(dt(2019, 1, 1), periods=3, freq='D')
@@ -216,7 +219,10 @@ def test_complicated_thing(tsa):
 
 def test_autotrophic_operator(tsa):
     @func('auto', auto=True)
-    def auto() -> pd.Series:
+    def auto(__interpreter__,
+             __from_value_date__,
+             __to_value_date__,
+             __revision_date__) -> pd.Series:
         return pd.Series(
             [1, 2, 3],
             index=pd.date_range(utcdt(2020, 1, 1), utcdt(2020, 1, 3), freq='D')

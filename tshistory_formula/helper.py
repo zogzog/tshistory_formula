@@ -188,13 +188,16 @@ def _name_from_signature_and_args(name, func, a, kw):
 
 
 def _extract_from_expr(expr):
+    # from an autotrophic expression, extract
+    # the function name, the function object
+    # the full args (to match python args) and kwargs
     from tshistory_formula.interpreter import NullIntepreter
 
     fname = str(expr[0])
     func = FUNCS[fname]
-    # because auto operators have it
-    # NOTE: is it always true ?
-    args = [NullIntepreter()]
+    # because auto operators have an interpreter
+    # and __from/__to/__revision_date__
+    args = [NullIntepreter(), None, None, None]
     kwargs = {}
     kw = None
     for a in expr[1:]:

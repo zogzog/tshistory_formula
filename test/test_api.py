@@ -235,7 +235,12 @@ def test_formula_components_wall(tsa):
     )
 
     @func('opaque-components', auto=True)
-    def custom(__interpreter__, s1name: str, s2name: str) -> pd.Series:
+    def custom(__interpreter__,
+               __from_value_date__,
+               __to_value_date__,
+               __revision_date__,
+               s1name: str,
+               s2name: str) -> pd.Series:
         i = __interpreter__
         s1 = i.get(i.cn, s1name)
         s2 = i.get(i.cn, s2name)
@@ -275,7 +280,10 @@ def test_autotrophic_idates(tsa):
     # using the fallback path through .history
 
     @func('autotrophic', auto=True)
-    def custom() -> pd.Series:
+    def custom(__interpreter__,
+               __from_value_date__,
+               __to_value_date__,
+               __revision_date__) -> pd.Series:
         return pd.Series(
             [1, 2, 3],
             pd.date_range(utcdt(2020, 1, 1), periods=1, freq='D')
@@ -298,7 +306,10 @@ def test_autotrophic_idates(tsa):
 
 def test_autotrophic_idates2(tsa):
     @func('auto2', auto=True)
-    def custom() -> pd.Series:
+    def custom(__interpreter__,
+               __from_value_date__,
+               __to_value_date__,
+               __revision_date__) -> pd.Series:
         return pd.Series(
             [1, 2, 3],
             pd.date_range(utcdt(2020, 1, 1), periods=1, freq='D')

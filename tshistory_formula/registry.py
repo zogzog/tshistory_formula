@@ -55,6 +55,16 @@ def func(name, auto=False):
         FUNCS[name] = dec
         if auto:
             AUTO[name] = func
+
+            for posarg in ('__interpreter__',
+                           '__from_value_date__',
+                           '__to_value_date__',
+                           '__revision_date__'):
+                assert posarg in inspect.getfullargspec(func).args, (
+                    f'`{name}` is an autotrophic operator. '
+                    f'It should have a `{posarg}` positional argument.'
+                )
+
         return dec
 
     return decorator
@@ -64,11 +74,6 @@ def history(name):
 
     def decorator(func):
         assert name in AUTO, f'operator {name} is not declared as "auto"'
-        getter = AUTO[name]
-        assert '__interpreter__' in inspect.getfullargspec(getter).args, (
-            f'`{name}` is an autotrophic operator with an history. '
-            'Its `func` getter should have an __interpreter__'
-        )
         HISTORY[name] = func
         return func
 

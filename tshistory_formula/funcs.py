@@ -355,6 +355,9 @@ def end_of_month(date: pd.Timestamp) -> pd.Timestamp:
 
 @func('constant', auto=True)
 def constant(__interpreter__,
+             __from_value_date__,
+             __to_value_date__,
+             __revision_date__,
              value: Number,
              fromdate: pd.Timestamp,
              todate: pd.Timestamp,
