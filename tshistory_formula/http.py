@@ -199,8 +199,8 @@ class formula_httpapi(httpapi):
                     )
                 except SyntaxError as err:
                     return f'syn:{err}', 400
-                except ValueError as err:
-                    return f'ops:{err}', 400
+                except TypeError as err:
+                    return f'typ:{err}', 400
 
                 return series_response(
                     args.format,
@@ -374,8 +374,8 @@ class FormulaClient(Client):
             msg = res.json()
             if msg.startswith('syn:'):
                 raise SyntaxError(msg[4:])
-            elif msg.startswith('ops:'):
-                raise ValueError(msg[4:])
+            elif msg.startswith('typ:'):
+                raise TypeError(msg[4:])
 
         return res
 

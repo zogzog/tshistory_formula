@@ -11,6 +11,10 @@ from tshistory.api import (
     altsources,
     mainsource
 )
+from tshistory_formula import (
+    helper,
+    interpreter
+)
 
 
 NONETYPE = type(None)
@@ -47,18 +51,13 @@ def eval_formula(self,
     # this normalizes the formula
     formula = serialize(tree)
 
-    # bad operators
     with self.engine.begin() as cn:
-        operators = self.tsh.find_operators(self.engine, tree)
-        badoperators = [
-            op
-            for op, func in operators.items()
-            if func is None
-        ]
-        if badoperators:
-            raise ValueError(
-                f'Formula refers to unknown operators '
-                f'{", ".join("`%s`" % o for o in badoperators)}'
+        # type checking
+        i = interpreter.Interpreter(cn, self, {})
+        rtype = helper.typecheck(tree, env=i.env)
+        if not helper.sametype(rtype, pd.Series):
+            raise TypeError(
+                f'formula `{name}` must return a `Series`, not `{rtype.__name__}`'
             )
 
         return self.tsh.eval_formula(
