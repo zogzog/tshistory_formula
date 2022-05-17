@@ -67,6 +67,11 @@ def test_eval_formula(tsx):
 2022-01-03 00:00:00+00:00    4.0
 """, ts)
 
+    with pytest.raises(SyntaxError):
+        tsx.eval_formula(
+            '(+ 1 i am borked'
+        )
+
 
 
 def test_local_formula_remote_series(tsa):

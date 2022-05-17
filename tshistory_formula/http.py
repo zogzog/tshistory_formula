@@ -190,12 +190,16 @@ class formula_httpapi(httpapi):
             @onerror
             def post(self):
                 args = eval_formula.parse_args()
-                ts = tsa.eval_formula(
-                    args.text,
-                    revision_date=args.revision_date,
-                    from_value_date=args.from_value_date,
-                    to_value_date=args.to_value_date
-                )
+                try:
+                    ts = tsa.eval_formula(
+                        args.text,
+                        revision_date=args.revision_date,
+                        from_value_date=args.from_value_date,
+                        to_value_date=args.to_value_date
+                    )
+                except SyntaxError as err:
+                    return str(err), 400
+
                 return series_response(
                     args.format,
                     ts,
@@ -363,6 +367,9 @@ class FormulaClient(Client):
         )
         if res.status_code == 200:
             return unpack_series('on-the-fly', res.content)
+
+        if res.status_code == 400:
+            raise SyntaxError(res.json())
 
         return res
 
