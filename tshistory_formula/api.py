@@ -36,6 +36,21 @@ def register_formula(self,
 
 
 @extend(mainsource)
+def eval_formula(self,
+                 formula: str,
+                 revision_date: pd.Timestamp=None,
+                 from_value_date: pd.Timestamp=None,
+                 to_value_date: pd.Timestamp=None) -> pd.Series:
+    return self.tsh.eval_formula(
+        self.engine,
+        formula,
+        revision_date=revision_date,
+        from_value_date=from_value_date,
+        to_value_date=to_value_date
+    )
+
+
+@extend(mainsource)
 def formula(self,
             name: str,
             display: bool=False,

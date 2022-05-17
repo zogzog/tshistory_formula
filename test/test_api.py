@@ -19,6 +19,56 @@ from tshistory_formula.registry import (
 )
 
 
+def test_eval_formula(tsx):
+    tsx.update(
+        'test-eval',
+        pd.Series(
+            [1, 2, 3],
+            index=pd.date_range(
+                pd.Timestamp('2022-1-1', tz='utc'),
+                periods=3,
+                freq='D')
+        ),
+        'Babar',
+        insertion_date=pd.Timestamp('2022-1-5', tz='utc')
+    )
+
+    tsx.update(
+        'test-eval',
+        pd.Series(
+            [1, 2, 3, 4, 5],
+            index=pd.date_range(
+                pd.Timestamp('2022-1-1', tz='utc'),
+                periods=5,
+                freq='D')
+        ),
+        'Babar',
+        insertion_date=pd.Timestamp('2022-1-6', tz='utc')
+    )
+
+    ts = tsx.eval_formula(
+        '(+ 1 (series "test-eval"))',
+        from_value_date=pd.Timestamp('2022-1-2', tz='utc'),
+        to_value_date=pd.Timestamp('2022-1-4', tz='utc')
+    )
+    assert_df("""
+2022-01-02 00:00:00+00:00    3.0
+2022-01-03 00:00:00+00:00    4.0
+2022-01-04 00:00:00+00:00    5.0
+""", ts)
+
+    ts = tsx.eval_formula(
+        '(+ 1 (series "test-eval"))',
+        revision_date=pd.Timestamp('2022-1-5', tz='utc')
+    )
+    assert_df("""
+2022-01-01 00:00:00+00:00    2.0
+2022-01-02 00:00:00+00:00    3.0
+2022-01-03 00:00:00+00:00    4.0
+""", ts)
+
+
+
 def test_local_formula_remote_series(tsa):
     rtsh = timeseries('test-mapi-2')
     rtsh.update(

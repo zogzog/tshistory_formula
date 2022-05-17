@@ -1,5 +1,6 @@
 import pandas as pd
 import requests
+import json
 
 from flask_restx import (
     inputs,
@@ -7,9 +8,19 @@ from flask_restx import (
     reqparse
 )
 
+from tshistory.util import (
+    series_metadata,
+    unpack_series
+)
 from tshistory.http.client import Client, unwraperror
-from tshistory.http.util import onerror
+from tshistory.http.util import (
+    enum,
+    onerror,
+    series_response,
+    utcdt
+)
 from tshistory.http.server import httpapi
+from tshistory.http.client import strft
 
 
 base = reqparse.RequestParser()
@@ -55,6 +66,27 @@ register_formula.add_argument(
     type=inputs.boolean,
     default=True,
     help='fail if the referenced series do not exist'
+)
+
+eval_formula = reqparse.RequestParser()
+eval_formula.add_argument(
+    'text',
+    type=str,
+    required=True,
+    help='formula to evaluate'
+)
+eval_formula.add_argument(
+    'revision_date', type=utcdt, default=None,
+    help='revision date can be forced'
+)
+eval_formula.add_argument(
+    'from_value_date', type=utcdt, default=None
+)
+eval_formula.add_argument(
+    'to_value_date', type=utcdt, default=None
+)
+eval_formula.add_argument(
+    'format', type=enum('json', 'tshpack'), default='json'
 )
 
 # groups
@@ -150,6 +182,26 @@ class formula_httpapi(httpapi):
                     raise
 
                 return '', 200 if exists else 201
+
+        @nss.route('/eval_formula')
+        class eval_formula_(Resource):
+
+            @api.expect(eval_formula)
+            @onerror
+            def post(self):
+                args = eval_formula.parse_args()
+                ts = tsa.eval_formula(
+                    args.text,
+                    revision_date=args.revision_date,
+                    from_value_date=args.from_value_date,
+                    to_value_date=args.to_value_date
+                )
+                return series_response(
+                    args.format,
+                    ts,
+                    series_metadata(ts),
+                    200
+                )
 
         @nss.route('/formula_components')
         class timeseries_formula_components(Resource):
@@ -290,6 +342,27 @@ class FormulaClient(Client):
 
         if res.status_code in (200, 204):
             return
+
+        return res
+
+    @unwraperror
+    def eval_formula(self, formula,
+                     revision_date=None,
+                     from_value_date=None,
+                     to_value_date=None):
+        query = {
+            'text': formula,
+            'revision_date': strft(revision_date) if revision_date else None,
+            'from_value_date': strft(from_value_date) if from_value_date else None,
+            'to_value_date': strft(to_value_date) if to_value_date else None,
+            'format': 'tshpack'
+        }
+        res = requests.post(
+            f'{self.uri}/series/eval_formula',
+            data=query
+        )
+        if res.status_code == 200:
+            return unpack_series('on-the-fly', res.content)
 
         return res
 
