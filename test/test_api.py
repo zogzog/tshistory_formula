@@ -72,6 +72,11 @@ def test_eval_formula(tsx):
             '(+ 1 i am borked'
         )
 
+    with pytest.raises(ValueError) as err:
+        tsx.eval_formula(
+            '(+ 1 (fake-operator "test-eval"))'
+        )
+    assert err.value.args[0] == 'Formula refers to unknown operators `fake-operator`'
 
 
 def test_local_formula_remote_series(tsa):

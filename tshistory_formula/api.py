@@ -41,13 +41,33 @@ def eval_formula(self,
                  revision_date: pd.Timestamp=None,
                  from_value_date: pd.Timestamp=None,
                  to_value_date: pd.Timestamp=None) -> pd.Series:
-    return self.tsh.eval_formula(
-        self.engine,
-        formula,
-        revision_date=revision_date,
-        from_value_date=from_value_date,
-        to_value_date=to_value_date
-    )
+
+    # basic syntax check
+    tree = parse(formula)
+    # this normalizes the formula
+    formula = serialize(tree)
+
+    # bad operators
+    with self.engine.begin() as cn:
+        operators = self.tsh.find_operators(self.engine, tree)
+        badoperators = [
+            op
+            for op, func in operators.items()
+            if func is None
+        ]
+        if badoperators:
+            raise ValueError(
+                f'Formula refers to unknown operators '
+                f'{", ".join("`%s`" % o for o in badoperators)}'
+            )
+
+        return self.tsh.eval_formula(
+            cn,
+            formula,
+            revision_date=revision_date,
+            from_value_date=from_value_date,
+            to_value_date=to_value_date
+        )
 
 
 @extend(mainsource)
