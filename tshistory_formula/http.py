@@ -1,5 +1,4 @@
 import pandas as pd
-import requests
 import json
 
 from flask_restx import (
@@ -299,7 +298,7 @@ class FormulaClient(Client):
 
     @unwraperror
     def formula(self, name, display=False, expanded=False):
-        res = requests.get(
+        res = self.session.get(
             f'{self.uri}/series/formula', params={
                 'name': name,
                 'display': display,
@@ -314,7 +313,7 @@ class FormulaClient(Client):
 
     @unwraperror
     def formula_components(self, name, expanded=False):
-        res = requests.get(
+        res = self.session.get(
             f'{self.uri}/series/formula_components', params={
                 'name': name,
                 'expanded': expanded
@@ -330,7 +329,7 @@ class FormulaClient(Client):
     def register_formula(self, name,
                          formula,
                          reject_unknown=True):
-        res = requests.patch(
+        res = self.session.patch(
             f'{self.uri}/series/formula', data={
                 'name': name,
                 'text': formula,
@@ -363,7 +362,7 @@ class FormulaClient(Client):
             'to_value_date': strft(to_value_date) if to_value_date else None,
             'format': 'tshpack'
         }
-        res = requests.post(
+        res = self.session.post(
             f'{self.uri}/series/eval_formula',
             data=query
         )
@@ -381,7 +380,7 @@ class FormulaClient(Client):
 
     @unwraperror
     def group_formula(self, name, expanded=False):
-        res = requests.get(
+        res = self.session.get(
             f'{self.uri}/group/formula', params={
                 'name': name,
                 'expanded': expanded
@@ -397,7 +396,7 @@ class FormulaClient(Client):
 
     @unwraperror
     def register_group_formula(self, name, formula):
-        res = requests.put(
+        res = self.session.put(
             f'{self.uri}/group/formula', data={
                 'name': name,
                 'text': formula
@@ -421,7 +420,7 @@ class FormulaClient(Client):
 
     @unwraperror
     def register_formula_bindings(self, name, formulaname, bindings):
-        res = requests.put(
+        res = self.session.put(
             f'{self.uri}/group/boundformula', data={
                 'name': name,
                 'formulaname': formulaname,
@@ -432,7 +431,7 @@ class FormulaClient(Client):
 
     @unwraperror
     def bindings_for(self, name):
-        res = requests.get(
+        res = self.session.get(
             f'{self.uri}/group/boundformula', params={
                 'name': name
             }
