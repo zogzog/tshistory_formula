@@ -676,6 +676,66 @@ def test_slice(engine, tsh):
     assert len(tsh.get(engine, 'slicing-empty')) == 0
 
 
+def test_asof_history(engine, tsh):
+    for i in range(3):
+        base = pd.Series(
+            [i] * 5,
+            index=pd.date_range(utcdt(2022, 1, 1), periods=5, freq='D')
+        )
+        tsh.update(
+            engine,
+            base,
+            'test-asof-hist',
+            'Babar',
+            insertion_date=utcdt(2022, 1, 1 + i)
+        )
+
+    tsh.register_formula(
+        engine,
+        'asof-history',
+        '(asof (shifted (today) #:days -1) (series "test-asof-hist"))'
+    )
+
+    v0 = tsh.get(engine, 'asof-history', revision_date=utcdt(2022, 1, 1))
+    assert not len(v0)
+
+    v1 = tsh.get(engine, 'asof-history', revision_date=utcdt(2022, 1, 2))
+    assert_df("""
+2022-01-01 00:00:00+00:00    0.0
+2022-01-02 00:00:00+00:00    0.0
+2022-01-03 00:00:00+00:00    0.0
+2022-01-04 00:00:00+00:00    0.0
+2022-01-05 00:00:00+00:00    0.0
+""", v1)
+
+    v3 = tsh.get(engine, 'asof-history', revision_date=utcdt(2022, 1, 4))
+    assert_df("""
+2022-01-01 00:00:00+00:00    2.0
+2022-01-02 00:00:00+00:00    2.0
+2022-01-03 00:00:00+00:00    2.0
+2022-01-04 00:00:00+00:00    2.0
+2022-01-05 00:00:00+00:00    2.0
+""", v3)
+
+    hist = tsh.history(
+        engine,
+        'asof-history'
+    )
+    assert_hist("""
+insertion_date             value_date               
+2022-01-02 00:00:00+00:00  2022-01-01 00:00:00+00:00    0.0
+                           2022-01-02 00:00:00+00:00    0.0
+                           2022-01-03 00:00:00+00:00    0.0
+                           2022-01-04 00:00:00+00:00    0.0
+                           2022-01-05 00:00:00+00:00    0.0
+2022-01-03 00:00:00+00:00  2022-01-01 00:00:00+00:00    1.0
+                           2022-01-02 00:00:00+00:00    1.0
+                           2022-01-03 00:00:00+00:00    1.0
+                           2022-01-04 00:00:00+00:00    1.0
+                           2022-01-05 00:00:00+00:00    1.0
+""", hist)
+
+
 def test_slice_naiveseries(engine, tsh):
     base = pd.Series(
         [1, 2, 3],
