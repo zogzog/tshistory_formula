@@ -1984,6 +1984,39 @@ def test_dependants(engine, tsh):
     ]
 
 
+def test_dependants_transitive_closure(engine, tsh):
+    ts = pd.Series(
+        [1, 2, 3],
+        index=pd.date_range(utcdt(2022, 1, 1), periods=3, freq='D')
+    )
+
+    tsh.update(
+        engine,
+        ts,
+        'dep-base-2',
+        'Babar'
+    )
+    tsh.register_formula(
+        engine,
+        'dep-f1',
+        '(series "dep-base-2")'
+    )
+    tsh.register_formula(
+        engine,
+        'dep-f2',
+        '(series "dep-f1")'
+    )
+    tsh.register_formula(
+        engine,
+        'dep-f3',
+        '(series "dep-f2")'
+    )
+
+    deps = tsh.dependants(engine, 'dep-f1')
+    # concern: f3 is missing
+    assert deps == ['dep-f2']
+
+
 # groups
 
 def test_group_formula(engine, tsh):
