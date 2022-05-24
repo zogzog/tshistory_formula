@@ -1959,7 +1959,8 @@ def test_dependants(engine, tsh):
     ]
     assert tsh.dependants(engine, 'dep-bottom') == [
         'dep-middle-left',
-        'dep-middle-right'
+        'dep-middle-right',
+        'dep-top'
     ]
 
     tsh.register_formula(
@@ -2013,8 +2014,7 @@ def test_dependants_transitive_closure(engine, tsh):
     )
 
     deps = tsh.dependants(engine, 'dep-f1')
-    # concern: f3 is missing
-    assert deps == ['dep-f2']
+    assert deps == ['dep-f2', 'dep-f3']
 
 
 # groups

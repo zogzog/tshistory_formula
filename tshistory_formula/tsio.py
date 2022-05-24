@@ -146,7 +146,7 @@ class timeseries(basets):
 
     @tx
     def dependants(self, cn, name):
-        return [n for n, in cn.execute(
+        deps = [n for n, in cn.execute(
             f'select f.name '
             f'from "{self.namespace}".formula as f, '
             f'     "{self.namespace}".formula as f2,'
@@ -155,7 +155,13 @@ class timeseries(basets):
             f'      d.needs = f2.id and '
             f'      f2.name = %(name)s',
             name=name
-        ).fetchall()]
+        ).fetchall()
+        ]
+        for dname in deps[:]:
+            deps.extend(
+                self.dependants(cn, dname)
+            )
+        return sorted(set(deps))
 
     @tx
     def register_formula(self, cn, name, formula, reject_unknown=True):
