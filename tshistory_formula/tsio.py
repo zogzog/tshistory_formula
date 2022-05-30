@@ -820,6 +820,17 @@ class timeseries(basets):
         )
 
     @tx
+    def log(self, cn, name, **kw):
+        if self.formula(cn, name):
+            if self.cache.exists(cn, name):
+                return self.cache.log(
+                    cn, name, **kw
+                )
+            return []
+
+        return super().log(cn, name, **kw)
+
+    @tx
     def rename(self, cn, oldname, newname):
         # read all formulas and parse them ...
         formulas = cn.execute(
