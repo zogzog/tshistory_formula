@@ -446,10 +446,15 @@ def constant_history(__interpreter__, value, fromdate, todate, freq, revdate):
 
 
 @insertion_dates('constant')
-def constant_idates(cn, tsh, tree, fromdate, todate):
+def constant_idates(cn, tsh, tree,
+                    from_insertion_date=None, to_insertion_date=None,
+                    from_value_date=None, to_value_date=None):
     itrp = Interpreter(cn, tsh, {})
     revdate = itrp.evaluate(tree[-1])
-    if fromdate and fromdate >= revdate or todate and todate <= revdate:
+    if (from_insertion_date and
+        from_insertion_date >= revdate or
+        to_insertion_date and
+        to_insertion_date <= revdate):
         return []
     return [revdate]
 

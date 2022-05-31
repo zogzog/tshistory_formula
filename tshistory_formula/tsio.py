@@ -686,12 +686,16 @@ class timeseries(basets):
     def insertion_dates(self, cn, name,
                         from_insertion_date=None,
                         to_insertion_date=None,
+                        from_value_date=None,
+                        to_value_date=None,
                         **kw):
         if self.type(cn, name) != 'formula':
             return super().insertion_dates(
                 cn, name,
                 from_insertion_date=from_insertion_date,
                 to_insertion_date=to_insertion_date,
+                from_value_date=from_value_date,
+                to_value_date=to_value_date,
                 **kw
             )
 
@@ -706,6 +710,8 @@ class timeseries(basets):
                         name,
                         from_insertion_date=from_insertion_date,
                         to_insertion_date=to_insertion_date,
+                        from_value_date=from_value_date,
+                        to_value_date=to_value_date,
                         **kw
                     )
                 continue
@@ -714,6 +720,8 @@ class timeseries(basets):
                     cn, name,
                     from_insertion_date=from_insertion_date,
                     to_insertion_date=to_insertion_date,
+                    from_value_date=from_value_date,
+                    to_value_date=to_value_date,
                     **kw
                 )
             else:
@@ -722,7 +730,9 @@ class timeseries(basets):
                     for _id, idate in self._revisions(
                             cn, name,
                             from_insertion_date=from_insertion_date,
-                            to_insertion_date=to_insertion_date
+                            to_insertion_date=to_insertion_date,
+                            from_value_date=from_value_date,
+                            to_value_date=to_value_date
                     )]
 
         # autotrophic operators
@@ -733,7 +743,9 @@ class timeseries(basets):
             revs = idates_func(
                 cn, self, site,
                 from_insertion_date,
-                to_insertion_date
+                to_insertion_date,
+                from_value_date,
+                to_value_date
             )
             if revs:
                 allrevs += revs
@@ -746,8 +758,10 @@ class timeseries(basets):
             hist = self._auto_history(
                 cn,
                 site,
-                from_insertion_date,
-                to_insertion_date,
+                from_insertion_date=from_insertion_date,
+                to_insertion_date=to_insertion_date,
+                from_value_date=from_value_date,
+                to_value_date=to_value_date
             )
             if hist:
                 allrevs += list(hist.keys())

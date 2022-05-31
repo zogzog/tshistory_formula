@@ -391,13 +391,15 @@ def test_autotrophic_idates2(tsa):
         }
 
     @insertion_dates('auto2')
-    def custom(cn, tsh, tree, fromdate, todate):
+    def custom(cn, tsh, tree,
+               from_insertion_date, to_insertion_date,
+               from_value_date, to_value_date):
         dates = [
             pd.Timestamp('2020-1-1', tz='utc'),
             pd.Timestamp('2020-1-2', tz='utc')
         ]
-        fromdate = fromdate or pd.Timestamp('1900-1-1', tz='UTC')
-        todate = todate or pd.Timestamp('2100-1-1', tz='UTC')
+        fromdate = from_insertion_date or pd.Timestamp('1900-1-1', tz='UTC')
+        todate = to_insertion_date or pd.Timestamp('2100-1-1', tz='UTC')
         return filter(lambda d: fromdate <= d <= todate, dates)
 
     tsa.register_formula(
