@@ -673,6 +673,7 @@ def series_clip(series: pd.Series,
     Example: `(clip (series "must-be-positive") #:min 0 #:replacemin #t)`
 
     """
+    options = series.options.copy()
     if max is not None:
         mask = series <= max
         if replacemax:
@@ -685,6 +686,7 @@ def series_clip(series: pd.Series,
             series[~mask] = min
         else:
             series = series[mask]
+    series.options = options
     return series
 
 

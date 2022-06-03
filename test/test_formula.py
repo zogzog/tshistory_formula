@@ -2056,23 +2056,10 @@ def test_fill_and_clip(engine, tsh):
 
     tsh.register_formula(engine, 'with-clip', formula)
 
-    assert len(tsh.get(engine, 'with-clip')) == 2
+    assert len(tsh.get(engine, 'with-clip')) == 4
+    assert tsh.get(engine, 'without-clip').equals(tsh.get(engine, 'with-clip'))
 
-    # the clip operator seems to negate the effect of the fill option O_O
-
-    # here are the complete traces of the results:
-
-    assert_df("""
-2022-01-01    3.0
-2022-01-02    3.0
-2022-01-03    2.0
-2022-01-04    2.0
-""",tsh.get(engine, 'without-clip'))
-
-    assert_df("""
-2022-01-01    3.0
-2022-01-02    3.0
-""",tsh.get(engine, 'with-clip'))
+    # everything is fine, now. The equilibrium is restored ^-^
 
 
 # groups
