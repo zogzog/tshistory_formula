@@ -2017,6 +2017,64 @@ def test_dependants_transitive_closure(engine, tsh):
     assert deps == ['dep-f2', 'dep-f3']
 
 
+def test_fill_and_clip(engine, tsh):
+    # setup:
+    # 2 series one of length 2, the other 4
+    # 'add' operator, with fill=0 => we expect that the formula would have a len of 4
+
+    ts = pd.Series(
+        [1] * 2,
+        index=pd.date_range(start=dt(2022, 1, 1),freq='D', periods=2)
+    )
+    tsh.update(engine, ts, 'ts-1', 'toto')
+
+    ts = pd.Series(
+        [2] * 4,
+        index=pd.date_range(start=dt(2022, 1, 1), freq='D', periods=4)
+    )
+    tsh.update(engine, ts, 'ts-2', 'tata')
+
+    formula = (
+        '(add'
+        ' (series "ts-1" #:fill 0)'
+        ' (series "ts-2" #:fill 0))'
+    )
+
+    tsh.register_formula(engine, 'without-clip', formula)
+
+    assert len(tsh.get(engine, 'without-clip')) == 4
+
+    # so far, so good
+    # now, we introduce a clip operator that should have no effect both on the values
+    # and the length of the formula result
+
+    formula = (
+        '(add'
+        ' (clip (series "ts-1" #:fill 0) #:max 3000000000)'
+        ' (series "ts-2"#:fill 0))'
+    )
+
+    tsh.register_formula(engine, 'with-clip', formula)
+
+    assert len(tsh.get(engine, 'with-clip')) == 2
+
+    # the clip operator seems to negate the effect of the fill option O_O
+
+    # here are the complete traces of the results:
+
+    assert_df("""
+2022-01-01    3.0
+2022-01-02    3.0
+2022-01-03    2.0
+2022-01-04    2.0
+""",tsh.get(engine, 'without-clip'))
+
+    assert_df("""
+2022-01-01    3.0
+2022-01-02    3.0
+""",tsh.get(engine, 'with-clip'))
+
+
 # groups
 
 def test_group_formula(engine, tsh):
