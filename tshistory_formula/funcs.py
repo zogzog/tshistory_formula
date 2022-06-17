@@ -788,8 +788,8 @@ def row_min(*serieslist: pd.Series, skipna: Optional[bool]=True) -> pd.Series:
     """
     Computes the row-wise minimum of its input series.
 
-    Example: `(min (series "station0") (series "station1") (series "station2"))`
-    Example: `(min (series "station0") (series "station1") #:skipna #f)`
+    Example: `(row-min (series "station0") (series "station1") (series "station2"))`
+    Example: `(row-min (series "station0") (series "station1") #:skipna #f)`
 
     The `skipna` keyword (which is true by default) controls the
     behaviour with nan values.
@@ -803,8 +803,8 @@ def row_max(*serieslist: pd.Series, skipna: Optional[bool]=True) -> pd.Series:
     """
     Computes the row-wise maximum of its input series.
 
-    Example: `(max (series "station0") (series "station1") (series "station2"))`
-    Example: `(max (series "station0") (series "station1") #:skipna #f)`
+    Example: `(row-max (series "station0") (series "station1") (series "station2"))`
+    Example: `(row-max (series "station0") (series "station1") #:skipna #f)`
 
     The `skipna` keyword (which is true by default) controls the
     behaviour with nan values.
