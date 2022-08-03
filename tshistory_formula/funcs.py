@@ -867,6 +867,11 @@ def cumsum(series: pd.Series) -> pd.Series:
 def time_shifted_transform(tree):
     _posargs, kwargs = buildargs(tree[1:])
 
+    if not kwargs:
+        # the signature of time-shifted allows a no-kw
+        # call (meaningless but possible)
+        return tree[1]
+
     def negate(items):
         return [
             -x if isinstance(x, (int, float)) else x

@@ -1402,11 +1402,10 @@ def test_time_shifted(engine, tsh):
         'test-shift-nokw',
         '(time-shifted (series "shifted"))'
     )
-    with pytest.raises(TypeError):
-        s1 = tsh.get(
-            engine,
-            'test-shift-nokw'
-        )
+    s1 = tsh.get(
+        engine,
+        'test-shift-nokw'
+    )
 
 
 def test_asof_fixed_date(engine, tsh):
