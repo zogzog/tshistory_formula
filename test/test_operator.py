@@ -1397,6 +1397,17 @@ def test_time_shifted(engine, tsh):
 2020-01-01 00:00:00+00:00    3.0
 """, s1)
 
+    tsh.register_formula(
+        engine,
+        'test-shift-nokw',
+        '(time-shifted (series "shifted"))'
+    )
+    with pytest.raises(TypeError):
+        s1 = tsh.get(
+            engine,
+            'test-shift-nokw'
+        )
+
 
 def test_asof_fixed_date(engine, tsh):
     for v in range(1, 4):
