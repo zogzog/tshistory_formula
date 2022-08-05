@@ -416,31 +416,18 @@ A few api calls are added to the `tshistory` base:
 Exemple:
 
 ```python
-  tsh.register_formula(
-      cn,
+  tsa.register_formula(
       'my-sweet-formula',
-      '(* 3.14 (series "going-round"))',
-      reject_unkown=True,
-      update=True
+      '(* 3.14 (series "going-round"))'
   )
 ```
-
-First comes the db connection object, second the formula name, last
-the actual expression.
-
-The `reject_unknown` parameter, which is True by default, makes the
-method fail if one constituent of the formula does not exist
-(e.g. "going-round" is neither a primary series or a formula).
-
-The `update` parameter tells wether an existing formula can be
-overwritten (False by default).
 
 # eval_formula
 
 Example:
 
 ```python
- >>> tsh.eval_formula(cn, '(* 3.14 (series "going-round"))')
+ >>> tsa.eval_formula('(* 3.14 (series "going-round"))')
  ...
  2020-01-01    3.14
  2020-01-02    6.28
