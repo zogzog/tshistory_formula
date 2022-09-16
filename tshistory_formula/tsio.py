@@ -130,6 +130,11 @@ class timeseries(basets):
 
     @tx
     def register_dependants(self, cn, name, tree):
+        cn.execute(
+            f'delete from "{self.namespace}".dependant where '
+            f'sid in (select id from "{self.namespace}".formula where name = %(name)s)',
+            name=name
+        )
         for dep in self.find_series(cn, tree):
             if self.type(cn, dep) != 'formula':
                 continue
@@ -145,7 +150,7 @@ class timeseries(basets):
             )
 
     @tx
-    def dependants(self, cn, name):
+    def dependants(self, cn, name, direct=False):
         deps = [n for n, in cn.execute(
             f'select f.name '
             f'from "{self.namespace}".formula as f, '
@@ -157,6 +162,10 @@ class timeseries(basets):
             name=name
         ).fetchall()
         ]
+
+        if direct:
+            return sorted(set(deps))
+
         for dname in deps[:]:
             deps.extend(
                 self.dependants(cn, dname)

@@ -1982,6 +1982,10 @@ def test_dependants(engine, tsh):
         'dep-middle-right',
         'dep-top'
     ]
+    assert tsh.dependants(engine, 'dep-bottom', direct=True) == [
+        'dep-middle-left',
+        'dep-middle-right'
+    ]
 
     # update and see
 
@@ -2003,15 +2007,10 @@ def test_dependants(engine, tsh):
         ' (series "dep-middle-right")'
         ' (series "dep-middle-right"))'
     )
-    # FATAL ! dep-top should NOT appear below
-    # we don't cleanup at all ...
     assert tsh.dependants(engine, 'dep-bottom-2') == [
         'dep-middle-left',
-        'dep-top'
     ]
-    # dep-middle-left should NOT appear below
     assert tsh.dependants(engine, 'dep-bottom') == [
-        'dep-middle-left',
         'dep-middle-right',
         'dep-top'
     ]
@@ -2019,7 +2018,7 @@ def test_dependants(engine, tsh):
 
 
 
-def test_dependants_transitive_closure(engine, tsh):
+def test_transitive_closure_dependants(engine, tsh):
     ts = pd.Series(
         [1, 2, 3],
         index=pd.date_range(utcdt(2022, 1, 1), periods=3, freq='D')
