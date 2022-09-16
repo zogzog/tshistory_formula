@@ -1968,8 +1968,7 @@ def test_dependants(engine, tsh):
         'dep-top',
         '(add'
         ' (series "dep-middle-left")'
-        ' (series "dep-middle-right")'
-        ' (series "dep-bottom"))'
+        ' (series "dep-middle-right"))'
     )
     assert tsh.dependants(engine, 'dep-top') == []
     assert tsh.dependants(engine, 'dep-middle-left') == [
@@ -1983,6 +1982,41 @@ def test_dependants(engine, tsh):
         'dep-middle-right',
         'dep-top'
     ]
+
+    # update and see
+
+    tsh.register_formula(
+        engine,
+        'dep-bottom-2',  # an alternative to bottom
+        '(series "dep-base")'
+    )
+
+    tsh.register_formula(
+        engine,
+        'dep-middle-left',
+        '(+ -1 (series "dep-bottom-2"))'
+    )
+    tsh.register_formula(
+        engine,
+        'dep-top',
+        '(add'
+        ' (series "dep-middle-right")'
+        ' (series "dep-middle-right"))'
+    )
+    # FATAL ! dep-top should NOT appear below
+    # we don't cleanup at all ...
+    assert tsh.dependants(engine, 'dep-bottom-2') == [
+        'dep-middle-left',
+        'dep-top'
+    ]
+    # dep-middle-left should NOT appear below
+    assert tsh.dependants(engine, 'dep-bottom') == [
+        'dep-middle-left',
+        'dep-middle-right',
+        'dep-top'
+    ]
+
+
 
 
 def test_dependants_transitive_closure(engine, tsh):
