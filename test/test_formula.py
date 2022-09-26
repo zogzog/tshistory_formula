@@ -2015,6 +2015,11 @@ def test_dependants(engine, tsh):
         'dep-top'
     ]
 
+    # delete bottom and see
+    tsh.delete(engine, 'dep-top')
+    assert tsh.dependants(engine, 'dep-bottom') == [
+        'dep-middle-right'
+    ]
 
 
 
