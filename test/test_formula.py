@@ -1996,12 +1996,16 @@ def test_dependants(engine, tsh):
         'dep-top'
     ]
 
-    # delete bottom and see
+    # delete things and see
     tsh.delete(engine, 'dep-top')
+
     assert tsh.dependants(engine, 'dep-bottom') == [
         'dep-middle-right'
     ]
 
+    tsh.delete(engine, 'dep-middle-right')
+    assert tsh.dependants(engine, 'dep-middle-left') == []
+    assert tsh.dependants(engine, 'dep-middle-right') == []
 
 
 def test_transitive_closure_dependants(engine, tsh):
