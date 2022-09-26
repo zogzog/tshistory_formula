@@ -1963,25 +1963,6 @@ def test_dependants(engine, tsh):
         'dep-top'
     ]
 
-    tsh.register_formula(
-        engine,
-        'dep-top',
-        '(add'
-        ' (series "dep-middle-left")'
-        ' (series "dep-middle-right"))'
-    )
-    assert tsh.dependants(engine, 'dep-top') == []
-    assert tsh.dependants(engine, 'dep-middle-left') == [
-        'dep-top'
-    ]
-    assert tsh.dependants(engine, 'dep-middle-right') == [
-        'dep-top'
-    ]
-    assert tsh.dependants(engine, 'dep-bottom') == [
-        'dep-middle-left',
-        'dep-middle-right',
-        'dep-top'
-    ]
     assert tsh.dependants(engine, 'dep-bottom', direct=True) == [
         'dep-middle-left',
         'dep-middle-right'
