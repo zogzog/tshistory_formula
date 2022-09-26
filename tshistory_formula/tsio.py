@@ -151,16 +151,17 @@ class timeseries(basets):
 
     @tx
     def dependants(self, cn, name, direct=False):
-        deps = [n for n, in cn.execute(
-            f'select f.name '
-            f'from "{self.namespace}".formula as f, '
-            f'     "{self.namespace}".formula as f2,'
-            f'     "{self.namespace}".dependant as d '
-            f'where f.id = d.sid and '
-            f'      d.needs = f2.id and '
-            f'      f2.name = %(name)s',
-            name=name
-        ).fetchall()
+        deps = [
+            n for n, in cn.execute(
+                f'select f.name '
+                f'from "{self.namespace}".formula as f, '
+                f'     "{self.namespace}".formula as f2,'
+                f'     "{self.namespace}".dependant as d '
+                f'where f.id = d.sid and '
+                f'      d.needs = f2.id and '
+                f'      f2.name = %(name)s',
+                name=name
+            ).fetchall()
         ]
 
         if direct:
