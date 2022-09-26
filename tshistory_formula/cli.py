@@ -291,6 +291,10 @@ create index if not exists "ix_{ns}_dependant_needs" on "{ns}".dependant (needs)
     with engine.begin() as cn:
         cn.execute(sql)
 
+    with engine.begin() as cn:
+        # purge
+        cn.execute(f'delete from "{namespace}".dependant')
+
     series = engine.execute(
         f'select name, text from "{namespace}".formula'
     ).fetchall()
