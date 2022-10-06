@@ -89,6 +89,15 @@ def test_rename_operator():
     ) == '(FOO 1 (bar 5 (FOO 6)))'
 
 
+def test_bad_name(engine, tsh):
+    with pytest.raises(AssertionError):
+        tsh.register_formula(
+            engine,
+            ' ',
+            '(series "foo")'
+        )
+
+
 def test_finder(engine, tsh):
     naive = pd.Series(
         [1, 2, 3],
@@ -1076,6 +1085,10 @@ def test_rename(engine, tsh):
 2019-01-02    5.0
 2019-01-03    7.0
 """, ts)
+
+    with pytest.raises(AssertionError):
+        with engine.begin() as cn:
+            tsh.rename(cn, 'rename-a', ' ')
 
     with engine.begin() as cn:
         tsh.rename(cn, 'rename-a', 'a-renamed')

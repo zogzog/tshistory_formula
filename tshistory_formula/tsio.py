@@ -175,6 +175,10 @@ class timeseries(basets):
 
     @tx
     def register_formula(self, cn, name, formula, reject_unknown=True):
+        assert isinstance(name, str), 'The name must be a string'
+        name = name.strip()
+        assert len(name), 'The new name must contain non whitespace items'
+
         if self.exists(cn, name) and self.type(cn, name) == 'primary':
             raise TypeError(
                 f'primary series `{name}` cannot be overriden by a formula'
@@ -856,6 +860,10 @@ class timeseries(basets):
 
     @tx
     def rename(self, cn, oldname, newname):
+        assert isinstance(oldname, str), 'The old name must be a string'
+        assert isinstance(newname, str), 'The new name must be a string'
+        newname = newname.strip()
+        assert len(newname), 'The new name must contain non whitespace items'
         # read all formulas and parse them ...
         formulas = cn.execute(
             f'select name, text from "{self.namespace}".formula'
