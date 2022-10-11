@@ -779,6 +779,44 @@ def test_slice_options(engine, tsh):
 """, ts)
 
 
+def test_scalar_pow(engine, tsh):
+    base = pd.Series(
+        [1, 2, 3],
+        index=pd.date_range(utcdt(2019, 1, 1), periods=3, freq='D')
+    )
+    tsh.update(engine, base, 'pow-a', 'Babar')
+
+    tsh.register_formula(
+        engine,
+        'pow-2',
+        '(** (series "pow-a") 2)',
+    )
+
+    tsh.register_formula(
+        engine,
+        'pow-sqrt',
+        '(** (series "pow-a") 0.5)',
+    )
+
+    ts = tsh.get(engine, 'pow-2')
+    assert_df("""
+2019-01-01 00:00:00+00:00    1.0
+2019-01-02 00:00:00+00:00    4.0
+2019-01-03 00:00:00+00:00    9.0
+""", ts)
+
+    ts = tsh.get(engine, 'pow-sqrt')
+    assert_df("""
+2019-01-01 00:00:00+00:00    1.000000
+2019-01-02 00:00:00+00:00    1.414214
+2019-01-03 00:00:00+00:00    1.732051
+""", ts)
+
+    ts = tsh.get(engine, 'pow-2',
+                 from_value_date=utcdt(2020, 1, 1))
+    assert ts.index.tz.zone == 'UTC'
+
+
 def test_mul(engine, tsh):
     base = pd.Series(
         [1, 2, 3],

@@ -523,6 +523,22 @@ def scalar_div(
     return res
 
 
+@func('**')
+def scalar_pow(
+        series: pd.Series,
+        num: Number) -> pd.Series:
+    """
+    Performs an exponential power on a series.
+
+    Example: `(** (series "positive-things") 2)`
+    """
+    opts = series.options
+
+    res = series ** num
+    res.options = opts
+    return res
+
+
 def _fill(df, colname, fillopt):
     """ in-place application of the series fill policies
     which can be a int/float or a coma separated string
