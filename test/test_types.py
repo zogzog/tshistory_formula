@@ -164,8 +164,6 @@ def test_operators_types():
         'cumsum': {'return': 'Series', 'series': 'Series'},
         'div': {'return': 'Series', 's1': 'Series', 's2': 'Series'},
         'end-of-month': {'date': 'Timestamp', 'return': 'Timestamp'},
-        'max': {'args': 'Number', 'return': 'Number'},
-        'min': {'args': 'Number', 'return': 'Number'},
         'mul': {'return': 'Series', 'serieslist': 'Series'},
         'naive': {'return': 'Series', 'series': 'Series', 'tzone': 'str'},
         'options': {'fill': 'Default[Union[str, Number]=None]',

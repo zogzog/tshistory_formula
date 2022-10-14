@@ -19,15 +19,16 @@ from tshistory_formula import (
 )
 
 
-def functypes():
+def functypes(all=False):
     return {
         name: helper.function_types(func)
         for name, func in registry.FUNCS.items()
+        if all or func.__doc__ is not None
     }
 
 
-def jsontypes():
-    return json.dumps(functypes())
+def jsontypes(all=False):
+    return json.dumps(functypes(all=all))
 
 
 class Interpreter:
