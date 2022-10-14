@@ -121,7 +121,7 @@ def test_operators_types():
     # prune the types registered from other modules/plugins
     # we want to only show the ones provided by the current package
     opnames = set(
-        ('*', '+', '/', 'add', 'asof', 'clip', 'constant', 'cumsum', 'div',
+        ('*', '**', '+', '/', 'add', 'asof', 'clip', 'constant', 'cumsum', 'div',
          'end-of-month', 'max', 'min', 'mul', 'naive',
          'options', 'priority', 'resample', 'rolling', 'row-max',
          'row-mean', 'row-min', 'series', 'shifted', 'slice', 'start-of-month',
@@ -136,6 +136,9 @@ def test_operators_types():
         '*': {'num': 'Number',
               'num_or_series': 'Union[Number, Series]',
               'return': 'Union[Number, Series]'},
+        '**': {'num': 'Number',
+               'return': 'Series',
+               'series': 'Series'},
         '+': {'num': 'Number',
               'num_or_series': 'Union[Number, Series]',
               'return': 'Union[Number, Series]'},
