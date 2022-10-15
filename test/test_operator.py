@@ -2096,3 +2096,160 @@ def test_constant_today_timetravel(engine, tsh):
 2021-01-01 00:00:00+00:00    1.0
 2021-01-02 00:00:00+00:00    1.0
 """, ts)
+
+
+def test_trigo(engine, tsh):
+    base = pd.Series(
+        [-400, -1, 0, 90, 180, 300000],
+        index=pd.date_range(utcdt(2022, 1, 1), periods=6, freq='D')
+    )
+    tsh.update(engine, base, 'trigo-a', 'Babar')
+
+    tsh.register_formula(
+        engine,
+        'cosinus',
+        '(trig.cos (series "trigo-a"))',
+    )
+
+    tsh.register_formula(
+        engine,
+        'cosinus-round',
+        '(trig.cos (series "trigo-a") #:decimals 14)',
+    )
+
+    tsh.register_formula(
+        engine,
+        'sinus',
+        '(trig.sin (series "trigo-a"))',
+    )
+
+    tsh.register_formula(
+        engine,
+        'tangent',
+        '(trig.tan (series "trigo-a"))',
+    )
+
+    ts = tsh.get(engine, 'cosinus')
+    assert_df("""
+2022-01-01 00:00:00+00:00    7.660444e-01
+2022-01-02 00:00:00+00:00    9.998477e-01
+2022-01-03 00:00:00+00:00    1.000000e+00
+2022-01-04 00:00:00+00:00    6.123234e-17
+2022-01-05 00:00:00+00:00   -1.000000e+00
+2022-01-06 00:00:00+00:00   -5.000000e-01
+""", ts)
+
+    ts = tsh.get(engine, 'cosinus-round')
+    assert_df("""
+2022-01-01 00:00:00+00:00    0.766044
+2022-01-02 00:00:00+00:00    0.999848
+2022-01-03 00:00:00+00:00    1.000000
+2022-01-04 00:00:00+00:00    0.000000
+2022-01-05 00:00:00+00:00   -1.000000
+2022-01-06 00:00:00+00:00   -0.500000
+""", ts)
+
+    ts = tsh.get(engine, 'sinus')
+    assert_df("""
+2022-01-01 00:00:00+00:00   -6.427876e-01
+2022-01-02 00:00:00+00:00   -1.745241e-02
+2022-01-03 00:00:00+00:00    0.000000e+00
+2022-01-04 00:00:00+00:00    1.000000e+00
+2022-01-05 00:00:00+00:00    1.224647e-16
+2022-01-06 00:00:00+00:00    8.660254e-01
+""", ts)
+
+    ts = tsh.get(engine, 'tangent')
+    assert_df("""
+2022-01-01 00:00:00+00:00   -8.390996e-01
+2022-01-02 00:00:00+00:00   -1.745506e-02
+2022-01-03 00:00:00+00:00    0.000000e+00
+2022-01-04 00:00:00+00:00    1.633124e+16
+2022-01-05 00:00:00+00:00   -1.224647e-16
+2022-01-06 00:00:00+00:00   -1.732051e+00
+""", ts)
+
+    ts = tsh.get(engine, 'sinus',
+                 from_value_date=utcdt(2023, 1, 1))
+    assert ts.index.tz.zone == 'UTC'
+
+    base_coord = pd.Series(
+        [-1, -np.sqrt(1/2), 0, 0.76, 1, 90],
+        index=pd.date_range(utcdt(2022, 1, 1), periods=6, freq='D')
+    )
+    tsh.update(engine, base_coord, 'coord-a', 'Babar')
+
+    tsh.register_formula(
+        engine,
+        'arccosinus',
+        '(trig.arccos (series "coord-a"))',
+    )
+
+    tsh.register_formula(
+        engine,
+        'arcsinus',
+        '(trig.arcsin (series "coord-a"))',
+    )
+
+    tsh.register_formula(
+        engine,
+        'arctangent',
+        '(trig.arctan (series "coord-a"))',
+    )
+
+    ts = tsh.get(engine, 'arccosinus')
+    assert_df("""
+2022-01-01 00:00:00+00:00    180.000000
+2022-01-02 00:00:00+00:00    135.000000
+2022-01-03 00:00:00+00:00     90.000000
+2022-01-04 00:00:00+00:00     40.535802
+2022-01-05 00:00:00+00:00      0.000000
+""", ts)
+
+    ts = tsh.get(engine, 'arcsinus')
+    assert_df("""
+2022-01-01 00:00:00+00:00   -90.000000
+2022-01-02 00:00:00+00:00   -45.000000
+2022-01-03 00:00:00+00:00     0.000000
+2022-01-04 00:00:00+00:00    49.464198
+2022-01-05 00:00:00+00:00    90.000000
+""", ts)
+
+    ts = tsh.get(engine, 'arctangent')
+    assert_df("""
+2022-01-01 00:00:00+00:00   -45.000000
+2022-01-02 00:00:00+00:00   -35.264390
+2022-01-03 00:00:00+00:00     0.000000
+2022-01-04 00:00:00+00:00    37.234834
+2022-01-05 00:00:00+00:00    45.000000
+2022-01-06 00:00:00+00:00    89.363406
+""", ts)
+
+    ts = tsh.get(engine, 'arcsinus',
+                 from_value_date=utcdt(2023, 1, 1))
+    assert ts.index.tz.zone == 'UTC'
+
+    tsh.register_formula(
+        engine,
+        'arctangente2',
+        '(trig.row-arctan2 (series "coord-a") (series "coord-a"))',
+    )
+
+    ts = tsh.get(engine, 'arctangente2')
+    assert_df("""
+2022-01-01 00:00:00+00:00   -135.0
+2022-01-02 00:00:00+00:00   -135.0
+2022-01-03 00:00:00+00:00      0.0
+2022-01-04 00:00:00+00:00     45.0
+2022-01-05 00:00:00+00:00     45.0
+2022-01-06 00:00:00+00:00     45.0
+""", ts)
+
+    ts = tsh.get(
+        engine,
+        'arctangente2',
+        from_value_date=pd.Timestamp('2023-1-1'),
+        to_value_date=pd.Timestamp('2023-1-1')
+    )
+
+    assert not len(ts)

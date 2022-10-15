@@ -125,7 +125,10 @@ def test_operators_types():
          'end-of-month', 'max', 'min', 'mul', 'naive',
          'options', 'priority', 'resample', 'rolling', 'row-max',
          'row-mean', 'row-min', 'series', 'shifted', 'slice', 'start-of-month',
-         'std', 'today', 'time-shifted', 'tzaware-tstamp')
+         'std', 'today', 'time-shifted',
+         'trig.cos', 'trig.arccos', 'trig.sin', 'trig.arcsin',
+         'trig.tan', 'trig.arctan', 'trig.row-arctan2',
+         'tzaware-tstamp')
     )
     types = {
         name: ftype
@@ -218,7 +221,22 @@ def test_operators_types():
                          'weeks': 'Default[int=0]'},
         'today': {'naive': 'Default[bool=False]',
                   'return': 'Timestamp',
-                  'tz': 'Default[str=None]'}
+                  'tz': 'Default[str=None]'},
+        'trig.arccos': {'return': 'Series', 'series': 'Series'},
+        'trig.arcsin': {'return': 'Series', 'series': 'Series'},
+        'trig.arctan': {'return': 'Series', 'series': 'Series'},
+        'trig.cos': {'decimals': 'Default[Number=None]',
+                     'return': 'Series',
+                     'series': 'Series'},
+        'trig.row-arctan2': {'return': 'Series',
+                             'series1': 'Series',
+                             'series2': 'Series'},
+        'trig.sin': {'decimals': 'Default[Number=None]',
+                     'return': 'Series',
+                     'series': 'Series'},
+        'trig.tan': {'decimals': 'Default[Number=None]',
+                     'return': 'Series',
+                     'series': 'Series'}
     } == types
 
 

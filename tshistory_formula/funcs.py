@@ -539,6 +539,7 @@ def scalar_pow(
     return res
 
 
+
 def _fill(df, colname, fillopt):
     """ in-place application of the series fill policies
     which can be a int/float or a coma separated string
@@ -582,6 +583,119 @@ def _group_series(*serieslist):
             _fill(df, name, fillopt)
 
     return df
+
+
+# trigonometric functions
+
+@func('trig.cos')
+def cosinus(series: pd.Series,
+            decimals: Optional[Number]=None) -> pd.Series:
+    """
+    Cosine element-wise on a degree series.
+
+    Example: `(trig.cos (series "degree-series") #:decimals 14)`
+    """
+    opts = series.options
+    res = np.cos(series * (np.pi / 180))
+    if decimals:
+        res = round(res, decimals)
+    res.options = opts
+    return res
+
+
+@func('trig.arccos')
+def arccosinus(series: pd.Series) -> pd.Series:
+    """
+    Trigonometric inverse cosine on a series of values [-1, 1] with a degree output.
+
+    Example: `(trig.arcos (series "coordinates"))`
+    """
+    opts = series.options
+    res = np.arccos(series) * (180 / np.pi)
+    res = res.dropna()
+    res.options = opts
+    return res
+
+
+@func('trig.sin')
+def sinus(series: pd.Series,
+          decimals: Optional[Number]=None) -> pd.Series:
+    """
+    Trigonometric sine element-wise on a degree series.
+
+    Example: `(trig.sin (series "degree-series") #:decimals 14)`
+    """
+    opts = series.options
+
+    res = np.sin(series * (np.pi / 180))
+    if decimals:
+        res = round(res, decimals)
+    res.options = opts
+    return res
+
+
+@func('trig.arcsin')
+def arcsinus(series: pd.Series) -> pd.Series:
+    """
+    Trigonometric inverse sine on a series of values [-1, 1] with a degree output.
+
+    Example: `(trig.arcsin (series "coordinates"))`
+    """
+    opts = series.options
+    res = np.arcsin(series) * (180 / np.pi)
+    res = res.dropna()
+    res.options = opts
+    return res
+
+
+@func('trig.tan')
+def tangent(series: pd.Series,
+            decimals: Optional[Number]=None) -> pd.Series:
+    """
+    Compute tangent element-wise on a degree series.
+
+    Example: `(trig.tan (series "degree-series") #:decimals 14)`
+    """
+    opts = series.options
+
+    res = np.tan(series * (np.pi / 180))
+    if decimals:
+        res = round(res, decimals)
+    res.options = opts
+    return res
+
+
+@func('trig.arctan')
+def arctangent(series: pd.Series) -> pd.Series:
+    """
+    Trigonometric inverse tangent on a series of values [-1, 1] with a degree output.
+
+    Example: `(trig.arctan (series "coordinates"))`
+    """
+    opts = series.options
+    res = np.arctan(series) * (180 / np.pi)
+    res.options = opts
+    return res
+
+
+@func('trig.row-arctan2')
+def arctangent2(series1: pd.Series,
+                series2: pd.Series) -> pd.Series:
+    """
+    Arc tangent of x1/x2 choosing the quadrant correctly with a degree output.
+
+    Example: `(trig.row-arctan2 (series "coordinates1") (series "coordinates2"))`
+    """
+    df = _group_series(series1, series2)
+    if not len(df):
+        return empty_series(
+            tzaware_serie(series1)
+        )
+    res = np.arctan2(df['0'], df['1']) * (180 / np.pi)
+    return res.dropna()
+
+
+# /trigo
 
 
 @func('add')
