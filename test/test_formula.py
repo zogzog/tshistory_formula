@@ -247,6 +247,36 @@ def test_user_meta(engine, tsh):
     }
 
 
+def test_first_latest_insertion_date(engine, tsh):
+    for i in range(3):
+        ts = pd.Series(
+            [i] * 3,
+            index=pd.date_range(
+                utcdt(2022, 1, i+1),
+                freq='D',
+                periods=3
+            )
+        )
+        tsh.update(
+            engine,
+            ts,
+            'test-f-l-idate',
+            'Babar',
+            insertion_date=utcdt(2022, 1, i+1)
+        )
+
+    name = 'idate-f-l'
+    tsh.register_formula(
+        engine,
+        name,
+        '(series "test-f-l-idate")'
+    )
+
+    idates = tsh.insertion_dates(engine, name)
+    assert tsh.first_insertion_date(engine, name) == idates[0]
+    assert tsh.latest_insertion_date(engine, name) == idates[-1]
+
+
 def test_series_options(engine, tsh):
     test = pd.Series(
         [1, 2, 3],

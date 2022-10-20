@@ -785,6 +785,23 @@ class timeseries(basets):
         return sorted(set(allrevs))
 
     @tx
+    def latest_insertion_date(self, cn, name):
+        formula = self.formula(cn, name)
+        if formula:
+            return self.insertion_dates(cn, name)[-1]
+
+        return super().latest_insertion_date(cn, name)
+
+    @tx
+    def first_insertion_date(self, cn, name):
+        formula = self.formula(cn, name)
+        if formula:
+            return self.insertion_dates(cn, name)[0]
+
+        return super().first_insertion_date(cn, name)
+
+
+    @tx
     def staircase(self, cn, name, delta,
                   from_value_date=None,
                   to_value_date=None):
