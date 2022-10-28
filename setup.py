@@ -19,8 +19,6 @@ setup(name='tshistory_formula',
       install_requires=[
           'tshistory',
           'psyl',
-          'dash==1.13.4',
-          'dash-html-components==1.0.3',
           'decorator'
       ],
       package_data={'tshistory_formula': [

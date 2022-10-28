@@ -14,7 +14,7 @@ from tshistory_formula.registry import (
     FUNCS,
     metadata
 )
-from tshistory_formula.editor import (
+from tsview.table import (
     components_table,
     fancypresenter
 )
