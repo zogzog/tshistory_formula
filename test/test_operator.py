@@ -19,6 +19,7 @@ from tshistory_formula.registry import (
     metadata
 )
 from tshistory_formula.interpreter import Interpreter
+from tshistory_formula.funcs import compute_bounds
 
 
 def test_naive_tzone(engine, tsh):
@@ -2253,3 +2254,762 @@ def test_trigo(engine, tsh):
     )
 
     assert not len(ts)
+
+
+# integration -- big hairy operator
+# keep me at the end of this module
+
+def test_base_integration(engine, tsh):
+    first_i_date = pd.Timestamp(dt(2015, 1, 1), tz='UTC')
+    second_i_date = pd.Timestamp(dt(2015, 1, 2), tz='UTC')
+
+    # first insertion
+    ts_stock_obs = pd.Series(
+        range(2),
+        pd.date_range(
+            start=dt(2015, 1, 1),
+            end=dt(2015, 1, 2),
+            freq='D'
+        )
+    )
+
+    ts_flow = pd.Series(
+        [1, 2] * 5,
+        pd.date_range(
+            start=dt(2015, 1, 1),
+            end=dt(2015, 1, 10),
+            freq='D'
+        )
+    )
+
+    tsh.update(
+        engine,
+        ts_stock_obs,
+        'stock_obs',
+        'test',
+        insertion_date=first_i_date
+    )
+    tsh.update(
+        engine,
+        ts_flow,
+        'flow',
+        'test',
+        insertion_date=first_i_date
+    )
+
+    # second insertion
+    ts_stock_obs = pd.Series(
+        range(3),
+        pd.date_range(
+            start=dt(2015, 1, 1),
+            end=dt(2015, 1, 3),
+            freq='D'
+        )
+    )
+
+    ts_flow = pd.Series(
+        [0, 1] * 5,
+        pd.date_range(
+            start=dt(2015, 1, 1),
+            end=dt(2015, 1, 10),
+            freq='D'
+        )
+    )
+
+    tsh.update(
+        engine,
+        ts_stock_obs,
+        'stock_obs',
+        'test',
+        insertion_date=second_i_date
+    )
+    tsh.update(
+        engine,
+        ts_flow,
+        'flow',
+        'test',
+        insertion_date=second_i_date
+    )
+
+    tsh.register_formula(
+        engine,
+        'ts_stock_fcst',
+        '(integration "stock_obs" "flow")'
+    )
+    meta = tsh.metadata(engine, 'ts_stock_fcst')
+    assert meta == {
+        'index_dtype': '<M8[ns]',
+        'index_type': 'datetime64[ns]',
+        'tzaware': False,
+        'value_dtype': '<f8',
+        'value_type': 'float64'
+    }
+
+    ts_stock_fcst = tsh.get(engine, 'ts_stock_fcst')
+
+    assert_df("""
+2015-01-01    0.0
+2015-01-02    1.0
+2015-01-03    2.0
+""", tsh.get(engine, 'stock_obs'))
+
+    assert_df("""
+2015-01-01    0.0
+2015-01-02    1.0
+2015-01-03    0.0
+2015-01-04    1.0
+2015-01-05    0.0
+2015-01-06    1.0
+2015-01-07    0.0
+2015-01-08    1.0
+2015-01-09    0.0
+2015-01-10    1.0
+""", tsh.get(engine, 'flow'))
+
+    assert_df("""
+2015-01-01    0.0
+2015-01-02    1.0
+2015-01-03    2.0
+2015-01-04    3.0
+2015-01-05    3.0
+2015-01-06    4.0
+2015-01-07    4.0
+2015-01-08    5.0
+2015-01-09    5.0
+2015-01-10    6.0
+""", ts_stock_fcst)
+
+    # test of bounds with different overlaps with the integral and differential series
+    assert 9 == len(tsh.get(engine, 'ts_stock_fcst', from_value_date=dt(2015, 1, 2)))
+    assert 5 == len(tsh.get(engine, 'ts_stock_fcst', from_value_date=dt(2015, 1, 6)))
+    assert 3 == len(tsh.get(engine, 'ts_stock_fcst', to_value_date=dt(2015, 1, 3)))
+    assert 6 == len(tsh.get(engine, 'ts_stock_fcst', to_value_date=dt(2015, 1, 6)))
+    assert 2 == len(tsh.get(engine, 'ts_stock_fcst',
+                            from_value_date=dt(2015, 1, 2),
+                            to_value_date=dt(2015, 1, 3)))
+    assert 9 == len(tsh.get(engine, 'ts_stock_fcst',
+                            from_value_date=dt(2015, 1, 2),
+                            to_value_date=dt(2015, 1, 25)))
+    assert 4 == len(tsh.get(engine, 'ts_stock_fcst',
+                            from_value_date=dt(2015, 1, 6),
+                            to_value_date=dt(2015, 1, 9)))
+
+    # revision_date
+    assert_df("""
+2015-01-06     7.0
+2015-01-07     8.0
+2015-01-08    10.0
+2015-01-09    11.0
+2015-01-10    13.0
+""", tsh.get(
+    engine,
+    'ts_stock_fcst',
+    from_value_date=dt(2015, 1, 6),
+    revision_date=pd.Timestamp(dt(2015, 1, 1, 12), tz='UTC')
+))
+
+    # tz-aware query -> don't fail
+    tsh.get(
+        engine,
+        'ts_stock_fcst',
+        from_value_date=pd.Timestamp('2015-1-6', tz='UTC')
+    )
+
+    # history
+    hist = tsh.history(engine, 'ts_stock_fcst')
+
+    assert_hist("""
+insertion_date             value_date
+2015-01-01 00:00:00+00:00  2015-01-01     0.0
+                           2015-01-02     1.0
+                           2015-01-03     2.0
+                           2015-01-04     4.0
+                           2015-01-05     5.0
+                           2015-01-06     7.0
+                           2015-01-07     8.0
+                           2015-01-08    10.0
+                           2015-01-09    11.0
+                           2015-01-10    13.0
+2015-01-02 00:00:00+00:00  2015-01-01     0.0
+                           2015-01-02     1.0
+                           2015-01-03     2.0
+                           2015-01-04     3.0
+                           2015-01-05     3.0
+                           2015-01-06     4.0
+                           2015-01-07     4.0
+                           2015-01-08     5.0
+                           2015-01-09     5.0
+                           2015-01-10     6.0
+""", hist)
+
+
+def test_stock_fill(engine, tsh):
+    base = pd.Series(
+        [0, 0, 0, 0],
+        index=[
+            dt(2015, 1, 1),
+            dt(2015, 1, 2),
+            dt(2015, 1, 4),
+            dt(2015, 1, 7),
+        ]
+    )
+    tsh.update(engine, base, 'int-fill', 'test')
+
+    temp = pd.Series(
+        range(1, 10),
+        index=pd.date_range(
+            start=dt(2015, 1, 1),
+            end=dt(2015, 1, 9),
+            freq='D'
+        )
+    )
+    tsh.update(engine, temp, 'temp', 'test')
+
+    tsh.register_formula(
+        engine,
+        'ts_cumul_base',
+        '(integration "int-fill" "temp")'
+    )
+
+    assert_df("""
+2015-01-01    0.0
+2015-01-02    0.0
+2015-01-04    0.0
+2015-01-07    0.0
+""", tsh.get(engine, 'int-fill'))
+
+    # by default, the integration is only done after the last value
+    # of the stock
+    assert_df("""
+2015-01-01     0.0
+2015-01-02     0.0
+2015-01-04     0.0
+2015-01-07     0.0
+2015-01-08     8.0
+2015-01-09    17.0
+""", tsh.get(engine, 'ts_cumul_base'))
+
+    tsh.register_formula(
+        engine,
+        'ts_filled_gap',
+        '(integration "int-fill" "temp" #:fill #t)'
+    )
+
+    # the series is equal to the stock value when it exists
+    # and integrates the flow in the in-beetween
+    # it can simulate a tank, regulary emptied (when ts_stock=0)
+    # very usefull to calculate the hdd reseted each year (ts_stock=0)
+    chunks_limit = compute_bounds(
+        tsh.get(engine, 'int-fill').index,
+        tsh.get(engine, 'temp').index
+    )
+    # 1st col: stock start
+    # 2nd col: stock end
+    # 3rd col: flow start
+    # 4th col: flow end
+
+    assert_df("""
+           0          1          2          3
+0 2015-01-01 2015-01-02 2015-01-03 2015-01-03
+1 2015-01-04 2015-01-04 2015-01-05 2015-01-06
+2 2015-01-07 2015-01-07 2015-01-08 2015-01-09
+""", pd.DataFrame(chunks_limit))
+
+    result = pd.concat(
+        [
+            tsh.get(engine, 'int-fill'),
+            tsh.get(engine, 'temp'),
+            tsh.get(engine, 'ts_filled_gap')
+        ],
+        axis=1
+    )
+
+    assert_df("""
+            int-fill  temp  ts_filled_gap
+2015-01-01       0.0   1.0            0.0
+2015-01-02       0.0   2.0            0.0
+2015-01-03       NaN   3.0            3.0
+2015-01-04       0.0   4.0            0.0
+2015-01-05       NaN   5.0            5.0
+2015-01-06       NaN   6.0           11.0
+2015-01-07       0.0   7.0            0.0
+2015-01-08       NaN   8.0            8.0
+2015-01-09       NaN   9.0           17.0
+""", result)
+
+    # request where stock is out of range:
+    stock1 = tsh.get(
+        engine,
+        'ts_cumul_base',
+        from_value_date=dt(2015, 1, 8),
+        to_value_date=dt(2015, 1, 9),
+    )
+
+    stock2 = tsh.get(
+        engine,
+        'ts_filled_gap',
+        from_value_date=dt(2015, 1, 8),
+        to_value_date=dt(2015, 1, 9),
+    )
+
+    # on the tail, the two formulas (with and without fill=True)
+    # are expected to be the same
+    assert stock1.equals(stock2)
+    assert_df("""
+2015-01-08     8.0
+2015-01-09    17.0
+""", stock1)
+
+    # unusual case where the stock series goes further in the future
+    # than the flow series
+    base = pd.Series(
+        [0, 0],
+        index=[
+            dt(2015, 1, 1),
+            dt(2015, 1, 10),
+        ]
+    )
+    tsh.update(engine, base, 'long-stock', 'test')
+
+    temp = pd.Series(
+        range(1, 6),
+        index=pd.date_range(
+            start=dt(2015, 1, 1),
+            end=dt(2015, 1, 5),
+            freq='D'
+        )
+    )
+    tsh.update(engine, temp, 'short-flow', 'test')
+
+    tsh.register_formula(
+        engine,
+        'ts-cumul',
+        '(integration "long-stock" "short-flow" #:fill #t)'
+    )
+
+    # basically, the stock after the last flow values are ignored
+    chunks_limit = compute_bounds(
+        tsh.get(engine, 'long-stock').index,
+        tsh.get(engine, 'short-flow').index
+    )
+    assert_df("""
+           0          1          2          3
+0 2015-01-01 2015-01-01 2015-01-02 2015-01-05
+""", pd.DataFrame(chunks_limit))
+
+    stock3 = tsh.get(
+        engine,
+        'ts-cumul'
+    )
+
+    assert_df("""
+2015-01-01     0.0
+2015-01-02     2.0
+2015-01-03     5.0
+2015-01-04     9.0
+2015-01-05    14.0
+""", stock3)
+
+    # fill option when there is nothing to fill
+    # we integrate a series on itself
+    tsh.register_formula(
+        engine,
+        'nothing_to_fill',
+        '(integration "temp" "temp" #:fill #t)'
+    )
+
+    ts = tsh.get(engine, 'nothing_to_fill')
+    assert_df("""
+2015-01-01    1.0
+2015-01-02    2.0
+2015-01-03    3.0
+2015-01-04    4.0
+2015-01-05    5.0
+2015-01-06    6.0
+2015-01-07    7.0
+2015-01-08    8.0
+2015-01-09    9.0
+""", ts)
+
+    # fill with the pattern:
+    # stock ** **
+    # fill  *****
+
+    hollow_stock = tsh.get(engine, 'temp')
+    hollow_stock.iloc[3] = np.nan
+    tsh.update(
+        engine,
+        hollow_stock,
+        'hollow_stock',
+        'crazy_analyst'
+    )
+
+    tsh.register_formula(
+        engine,
+        'corner-case-36',
+        '(integration "hollow_stock" "temp" #:fill #t))'
+    )
+
+    assert_df("""
+2015-01-01    1.0
+2015-01-02    2.0
+2015-01-03    3.0
+2015-01-04    7.0
+2015-01-05    5.0
+2015-01-06    6.0
+2015-01-07    7.0
+2015-01-08    8.0
+2015-01-09    9.0
+""", tsh.get(engine, 'corner-case-36'))
+
+
+def test_stock_bounds(engine, tsh):
+    ts_flow = pd.Series(
+        [10, 11, 12, 13, 14],
+        pd.date_range(
+            start=dt(2015, 1, 1),
+            end=dt(2015, 1, 5),
+            freq='D'
+        )
+    )
+    tsh.update(
+        engine,
+        ts_flow,
+        'ts-flow',
+        'test'
+    )
+
+    ts_stock_obs = pd.Series(
+        range(3),
+        pd.date_range(
+            start=dt(2015, 1, 1),
+            end=dt(2015, 1, 3),
+            freq='D'
+        )
+    )
+
+    tsh.update(
+        engine,
+        ts_stock_obs,
+        'ts-stock-obs',
+        'test'
+    )
+    tsh.register_formula(
+        engine,
+        'ts-stock',
+        '(integration "ts-stock-obs" "ts-flow")'
+    )
+    all = tsh.get(
+        engine,
+        'ts-stock',
+        from_value_date=dt(2015, 1, 1),
+        to_value_date=dt(2015, 1, 5)
+    )
+    assert_df("""
+2015-01-01     0.0
+2015-01-02     1.0
+2015-01-03     2.0
+2015-01-04    15.0
+2015-01-05    29.0
+    """, all)
+
+    # let's request data with bounds BEFORE the last value of observed stock
+    bounded = tsh.get(
+        engine,
+        'ts-stock',
+        to_value_date=dt(2015, 1, 2)
+    )
+
+    assert_df("""
+2015-01-01    0.0
+2015-01-02    1.0
+""", bounded)
+
+
+def test_more_integration_test(engine, tsh):
+    # explicit combination bounds * fill option
+    # the stock has the following pattern:
+    # --xx--xx--xx--
+    # and the values are negatives
+    # while the flow:
+    # xxxxxxxxxxxxxx
+    # with positive values
+    # we will try to request the integration with the bounds falling in
+    # different place in this pattern
+    ts = pd.Series(
+        range(14),
+        pd.date_range(
+            start=dt(2022, 1, 1),
+            end=dt(2022, 1, 14),
+            freq='D'
+        )
+    )
+
+    tsh.update(engine, ts, 'ts-diff', 'test')
+
+    pattern = [True, True, False, False]
+    ts = ts.loc[[False, False] + pattern * 3]
+    assert 6 == len(ts)
+
+    tsh.update(engine, -ts, 'ts-int', 'test')
+    tsh.register_formula(
+        engine,
+        'plain-integration',
+        '(integration "ts-int" "ts-diff"))'
+    )
+
+    tsh.register_formula(
+        engine,
+        'integration-with-fill',
+        '(integration "ts-int" "ts-diff" #:fill #t))'
+    )
+
+    assert_df("""
+2022-01-03    -2.0
+2022-01-04    -3.0
+2022-01-07    -6.0
+2022-01-08    -7.0
+2022-01-11   -10.0
+2022-01-12   -11.0
+2022-01-13     1.0
+2022-01-14    14.0
+""", tsh.get(engine, 'plain-integration'))
+
+    assert_df("""
+2022-01-03    -2.0
+2022-01-04    -3.0
+2022-01-05     1.0
+2022-01-06     6.0
+2022-01-07    -6.0
+2022-01-08    -7.0
+2022-01-09     1.0
+2022-01-10    10.0
+2022-01-11   -10.0
+2022-01-12   -11.0
+2022-01-13     1.0
+2022-01-14    14.0
+""", tsh.get(engine, 'integration-with-fill'))
+
+    # first case: no stock present in the requested bounds
+    # (the integration operator will look after the last stock
+    # avaiable and integrate from there, with the same behaviour with
+    # or without fill)
+    fvd = dt(2022, 1, 13)
+    tvd = dt(2022, 1, 14)
+
+    tsp = tsh.get(
+        engine,
+        'plain-integration',
+        from_value_date=fvd,
+        to_value_date=tvd
+    )
+    tsf = tsh.get(
+        engine,
+        'integration-with-fill',
+        from_value_date=fvd,
+        to_value_date=tvd
+    )
+
+    assert tsp.equals(tsf)
+    assert 2 == len(tsp)
+
+    # second case: the lower bounds capture a segment where
+    # the stock is present
+    # same thing for the upper bound
+    # plain integration should return the unaltered stock
+    # integration with fill should interpolate the holes in the stock
+    fvd = dt(2022, 1, 7)
+    tvd = dt(2022, 1, 12)
+
+    tsp = tsh.get(
+        engine,
+        'plain-integration',
+        from_value_date=fvd,
+        to_value_date=tvd
+    )
+    tsf = tsh.get(
+        engine,
+        'integration-with-fill',
+        from_value_date=fvd,
+        to_value_date=tvd
+    )
+
+    assert_df("""
+2022-01-07    -6.0
+2022-01-08    -7.0
+2022-01-11   -10.0
+2022-01-12   -11.0
+""", tsp)
+
+    assert_df("""
+2022-01-07    -6.0
+2022-01-08    -7.0
+2022-01-09     1.0
+2022-01-10    10.0
+2022-01-11   -10.0
+2022-01-12   -11.0
+""", tsf)
+
+    # third case, same as before, but the upper bound lands where the
+    # stock is absent
+    fvd = dt(2022, 1, 6)
+    tvd = dt(2022, 1, 12)
+
+    tsp = tsh.get(
+        engine,
+        'plain-integration',
+        from_value_date=fvd,
+        to_value_date=tvd
+    )
+    tsf = tsh.get(
+        engine,
+        'integration-with-fill',
+        from_value_date=fvd,
+        to_value_date=tvd
+    )
+
+    assert_df("""
+2022-01-07    -6.0
+2022-01-08    -7.0
+2022-01-11   -10.0
+2022-01-12   -11.0
+""", tsp)
+
+    assert_df("""
+2022-01-06     6.0
+2022-01-07    -6.0
+2022-01-08    -7.0
+2022-01-09     1.0
+2022-01-10    10.0
+2022-01-11   -10.0
+2022-01-12   -11.0
+""", tsf)
+
+    # fourth case: the lower case lands with an absent stock but some
+    # stock before
+    fvd = dt(2022, 1, 4)
+    tvd = dt(2022, 1, 8)
+
+    tsp = tsh.get(
+        engine,
+        'plain-integration',
+        from_value_date=fvd,
+        to_value_date=tvd
+    )
+    tsf = tsh.get(
+        engine,
+        'integration-with-fill',
+        from_value_date=fvd,
+        to_value_date=tvd
+    )
+
+    assert_df("""
+2022-01-04   -3.0
+2022-01-07   -6.0
+2022-01-08   -7.0
+""", tsp)
+
+    # the results are unintuitive but coherent with the first case
+    assert_df("""
+2022-01-04   -3.0
+2022-01-05    1.0
+2022-01-06    6.0
+2022-01-07   -6.0
+2022-01-08   -7.0
+""", tsf)
+    # still coherent with case #1
+
+    # last case: lower bound has no stock with no stock before but some flow
+    fvd = dt(2022, 1, 2)
+    tvd = dt(2022, 1, 8)
+
+    tsp = tsh.get(
+        engine,
+        'plain-integration',
+        from_value_date=fvd,
+        to_value_date=tvd
+    )
+    tsf = tsh.get(
+        engine,
+        'integration-with-fill',
+        from_value_date=fvd,
+        to_value_date=tvd
+    )
+
+    assert_df("""
+2022-01-03   -2.0
+2022-01-04   -3.0
+2022-01-07   -6.0
+2022-01-08   -7.0
+""", tsp)
+
+    assert_df("""
+2022-01-03   -2.0
+2022-01-04   -3.0
+2022-01-05    1.0
+2022-01-06    6.0
+2022-01-07   -6.0
+2022-01-08   -7.0
+""", tsf)
+
+
+def test_integration_which_big_gap(engine, tsh):
+    ts = pd.Series(
+        range(10),
+        pd.date_range(
+            start=dt(2021, 1, 1),
+            end=dt(2021, 1, 10),
+            freq='D'
+        )
+    )
+
+    tsh.update(engine, ts, 'ts-far', 'test')
+
+    ts = pd.Series(
+        range(732),
+        pd.date_range(
+            start=dt(2020, 1, 1),
+            end=dt(2022, 1, 1),
+            freq='D'
+        )
+    )
+    tsh.update(engine, ts, 'ts-recent', 'test')
+
+    tsh.register_formula(
+        engine,
+        'integration-gap',
+        '(integration "ts-far" "ts-recent"))'
+    )
+
+    tsh.register_formula(
+        engine,
+        'integration-gap-with-fill',
+        '(integration "ts-far" "ts-recent" #:fill #t))'
+    )
+
+    tsp = tsh.get(
+        engine,
+        'integration-gap',
+        from_value_date=dt(2021, 12, 25),
+        to_value_date=dt(2022, 1, 10)
+    )
+
+    tsf = tsh.get(
+        engine,
+        'integration-gap-with-fill',
+        from_value_date=dt(2021, 12, 25),
+        to_value_date=dt(2022, 1, 10)
+    )
+
+    assert_df("""
+2021-12-25    191959.0
+2021-12-26    192684.0
+2021-12-27    193410.0
+2021-12-28    194137.0
+2021-12-29    194865.0
+2021-12-30    195594.0
+2021-12-31    196324.0
+2022-01-01    197055.0
+""", tsp)
+
+    assert tsp.equals(tsf)

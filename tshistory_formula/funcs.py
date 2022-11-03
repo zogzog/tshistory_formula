@@ -18,6 +18,7 @@ from tshistory.util import (
     compatible_date,
     empty_series,
     ensuretz,
+    patch,
     patchmany,
     tzaware_serie
 )
@@ -421,7 +422,7 @@ def _constant(__interpreter__, args, value, fromdate, todate, freq, revdate):
 
 
 @metadata('constant')
-def metadata(cn, tsh, tree):
+def constant_metadata(cn, tsh, tree):
     return {
         'constant': {
         'tzaware': True,
@@ -1067,3 +1068,269 @@ def rolling(series: pd.Series,
     rolled = series.rolling(window)
     df = rolled.agg((method,)).dropna()
     return df[df.columns[0]]
+
+
+# integration -- a somewhat hairy operator :)
+# keep me at the end of this module
+
+def any_hole(stock, flow):
+    # sotck and flow are index
+    # we only scan the period where there are stock
+    first_stock = min(stock)
+    last_stock = max(stock)
+    flow = flow[(flow > first_stock) & (flow < last_stock)]
+    return not flow.isin(stock).all()
+
+
+def compute_bounds(stock, flow):
+    """
+    stock and flow are timestamp indexes
+    we compute the intervals (start, stop) for which
+    there is stock, or else flow
+    """
+    # case where the stock goes further in the future than the flow
+    stock = stock[stock <= max(flow)]
+
+    all_dates = stock.union(flow).sort_values()
+    is_stock = pd.Series(
+        all_dates.isin(stock),
+        index=all_dates
+    ).astype(int)
+
+    variation = is_stock.diff()
+    # the first value is NaN and we force it as a stock bucket start
+    variation.iloc[0] = 1
+    starts_stock = variation == 1
+    starts_flow = variation == -1
+
+    ends_stock = starts_flow.index[
+        starts_flow.shift(-1).fillna(False)
+    ]
+    ends_flow = starts_stock.index[
+        starts_stock.shift(-1).fillna(False)
+    ]
+
+    starts_stock = starts_stock.index[
+        starts_stock
+    ]
+    starts_flow = starts_flow.index[
+        starts_flow
+    ]
+    if not is_stock.iloc[-1]:
+        # the last value is a flow
+        ends_flow = ends_flow.append(is_stock.index[-1:])
+    else:
+        # the last value is a stock
+        ends_stock = ends_stock.append(is_stock.index[-1:])
+        starts_flow = starts_flow.append(pd.DatetimeIndex([None]))
+        ends_flow = ends_flow.append(pd.DatetimeIndex([None]))
+
+    assert len(starts_flow) == len(starts_stock) == len(ends_flow) == len(ends_stock)
+
+    return zip(
+        starts_stock,
+        ends_stock,
+        starts_flow,
+        ends_flow,
+    )
+
+
+def find_last_values(
+        __interpreter__,
+        name,
+        revision_date,
+        from_value_date,
+        to_value_date,
+        fill,
+        tzaware):
+    """
+    Returns a series contained between from_value_date and
+    to_value_date If no data is found in this interval, this function
+    will look at the left of the lower bound until it finds something
+    (with a hard-coded limit to avoid infinite loops)
+    """
+    period = timedelta(days=10)
+    multiplier = 2
+
+    args = {}
+    if revision_date:
+        args['revision_date'] = revision_date
+
+    if to_value_date:
+        args.update({'to_value_date': to_value_date})
+
+    if not from_value_date:
+        return __interpreter__.get(name, args)
+
+    current_bound = from_value_date
+    ts = empty_series(tzaware)
+    if not fill:
+        while not len(ts):
+            args.update({'from_value_date': current_bound})
+            ts = __interpreter__.get(name, args)
+            current_bound = from_value_date - period
+            period = period * multiplier
+            if period > timedelta(days=3000):
+                break
+    else:
+        args.update({'from_value_date': from_value_date})
+        ts = __interpreter__.get(name, args)
+        previous_ts = empty_series(tzaware)
+        current_bound = from_value_date
+        args.update({'to_value_date': from_value_date})
+        while not len(previous_ts):
+            args.update({'from_value_date': current_bound})
+            previous_ts = __interpreter__.get(name, args)
+            current_bound = from_value_date - period
+            period = period * multiplier
+            if period > timedelta(days=3000):
+                break
+        if len(previous_ts):
+            ts = patch(previous_ts, ts)
+
+    return ts
+
+
+def _integration(__interpreter__, iargs, stock_name, flow_name, fill):
+    i = __interpreter__
+    args = iargs.copy()
+    from_value_date = args.pop('from_value_date', None)
+    to_value_date = args.pop('to_value_date', None)
+
+    assert i.tsh.exists(i.cn, stock_name), f'No series {stock_name}'
+    assert i.tsh.exists(i.cn, flow_name), f'No series {flow_name}'
+
+    tzaware = i.tsh.metadata(i.cn, stock_name)['tzaware']
+    ts_stock = find_last_values(
+        __interpreter__,
+        stock_name,
+        args.get('revision_date'),
+        from_value_date,
+        to_value_date,
+        fill,
+        tzaware
+    )
+    ts_stock = ts_stock.dropna()
+    if from_value_date:
+        from_value_date = compatible_date(
+            tzaware,
+            from_value_date
+        )
+
+    if to_value_date:
+        to_value_date = compatible_date(
+            tzaware,
+            to_value_date
+        )
+
+    if not len(ts_stock):
+        return empty_series(tzaware)
+
+    if not fill:
+        first_diff_date = ts_stock.index[-1]
+    elif from_value_date is None:
+        first_diff_date = ts_stock.index[0]
+    else:
+        dates_stock_before = ts_stock.index < from_value_date
+        if dates_stock_before.any():
+            first_diff_date = max(ts_stock.index[ts_stock.index < from_value_date])
+        else:
+            first_diff_date = ts_stock.index[0]
+
+    args.update({'from_value_date': first_diff_date})
+    if to_value_date:
+        args.update({'to_value_date': to_value_date})
+
+    if to_value_date and to_value_date < first_diff_date:
+        ts_diff = empty_series(tzaware)
+    else:
+        ts_diff = __interpreter__.get(flow_name, args)
+
+    # we want to exclude the first value which is a stock value
+    # and from_value_date is inclusive
+    ts_diff = ts_diff[ts_diff.index > first_diff_date]
+
+    if ts_diff is None or not len(ts_diff):
+        ts_total = ts_stock
+    else:
+        if to_value_date:
+            ts_diff = ts_diff[ts_diff.index <= to_value_date]
+        if fill:
+            if any_hole(ts_stock.index, ts_diff.index):
+                bounds = compute_bounds(ts_stock.index, ts_diff.index)
+            else:
+                return _integration(
+                    __interpreter__,
+                    iargs,
+                    stock_name,
+                    flow_name,
+                    fill=False
+                )
+        else:
+            bounds = [
+                (
+                    ts_stock.index[0],
+                    ts_stock.index[-1],
+                    ts_diff.index[0],
+                    ts_diff.index[-1]
+                )
+            ]
+        chunks = []
+        for start_stock, end_stock, start_diff, end_diff in bounds:
+            stock = ts_stock.loc[start_stock: end_stock]
+            diff = ts_diff.loc[start_diff: end_diff]
+            chunks.append(stock)
+            chunks.append(diff.cumsum(skipna=False) + stock.iloc[-1])
+        ts_total = pd.concat(chunks)
+
+    if from_value_date:
+        ts_total = ts_total[ts_total.index >= from_value_date]
+    if to_value_date:
+        ts_total = ts_total[ts_total.index <= to_value_date]
+
+    return ts_total
+
+
+@func('integration')
+def integration(
+        __interpreter__,
+        __from_value_date__,
+        __to_value_date__,
+        __revision_date__,
+        stock_name: str,
+        flow_name: str,
+        fill: Optional[bool]=False) -> pd.Series:
+    """
+    Integrate a given flow series to the last known value of a stock series.
+
+    Example: `(integration "stock-series-name" "flow-series-name")`
+    """
+    args = {
+        'from_value_date': __from_value_date__,
+        'to_value_date': __to_value_date__,
+        'revision_date': __revision_date__
+    }
+
+    return _integration(
+        __interpreter__,
+        args,
+        stock_name,
+        flow_name,
+        fill
+    )
+
+
+@metadata('integration')
+def integration_metadata(cn, tsh, tree):
+    return {
+        tree[1]: tsh.metadata(cn, tree[1]),
+        tree[2]: tsh.metadata(cn, tree[2])
+    }
+
+
+@finder('integration')
+def integration_finder(cn, tsh, tree):
+    return {
+        tree[1]: tree,
+        tree[2]: tree
+    }

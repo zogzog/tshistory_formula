@@ -122,7 +122,7 @@ def test_operators_types():
     # we want to only show the ones provided by the current package
     opnames = set(
         ('*', '**', '+', '/', 'add', 'asof', 'clip', 'constant', 'cumsum', 'div',
-         'end-of-month', 'max', 'min', 'mul', 'naive',
+         'end-of-month', 'integration', 'max', 'min', 'mul', 'naive',
          'options', 'priority', 'resample', 'rolling', 'row-max',
          'row-mean', 'row-min', 'series', 'shifted', 'slice', 'start-of-month',
          'std', 'today', 'time-shifted',
@@ -167,6 +167,10 @@ def test_operators_types():
         'cumsum': {'return': 'Series', 'series': 'Series'},
         'div': {'return': 'Series', 's1': 'Series', 's2': 'Series'},
         'end-of-month': {'date': 'Timestamp', 'return': 'Timestamp'},
+        'integration': {'fill': 'Default[bool=False]',
+                        'flow_name': 'str',
+                        'return': 'Series',
+                        'stock_name': 'str'},
         'mul': {'return': 'Series', 'serieslist': 'Series'},
         'naive': {'return': 'Series', 'series': 'Series', 'tzone': 'str'},
         'options': {'fill': 'Default[Union[str, Number]=None]',
