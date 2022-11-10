@@ -2800,3 +2800,73 @@ def test_group_bound_history(engine, tsh):
 2022-04-06 00:00:00+00:00  15.14  17.14  19.14
 """, group_past)
 
+
+def test_for_group_optimization(engine, tsh):
+    """
+    In here we build a hijacked dependency tree
+    to test an optimization of hijacking:
+    * The tree:
+    A-+-B--C
+      +-G--SG
+    C and SG are primary series
+    G will be hijacked by a group
+    SG is a series that should not be evaluated during the hijacking
+    * The optim:
+    During the hijacking, the formula tree is completely evaluated for each scenario
+    which is obviously very redundant.
+    In this case, B and C should only be evaluated once: this is the point of the
+    upcoming optim
+    """
+
+    # Bulding the tree dependency
+    ts = pd.Series(
+        [1, 2, 3],
+        index=pd.date_range(dt(2022, 1, 1), periods=3, freq='D')
+    )
+
+    df = gengroup(
+        n_scenarios=3,
+        from_date=dt(2022, 1, 1),
+        length=3,
+        freq='D',
+        seed=2
+    )
+
+    # primaries:
+    tsh.update(engine, ts, 'ts-c', 'test')
+    tsh.update(engine, ts, 'ts-sg', 'test')
+
+    # group:
+    tsh.group_replace(engine, df, 'group-o', 'test')
+
+    # formulas:
+    tsh.register_formula(engine, 'ts-b', '(* 2 (series "ts-c"))')
+    tsh.register_formula(engine, 'ts-g', '(* 3 (series "ts-sg"))')
+    tsh.register_formula(engine, 'ts-a', '(add (series "ts-b") (series "ts-g"))')
+
+    assert_df("""
+2022-01-01     5.0
+2022-01-02    10.0
+2022-01-03    15.0
+""", tsh.get(engine, 'ts-a'))
+
+    # hijacking
+    binding = pd.DataFrame(
+        [['ts-g', 'group-o', 'optim']],
+        columns = ['series', 'group', 'family']
+    )
+
+    tsh.register_formula_bindings(
+        engine,
+        'group-to-optim',
+        'ts-a',
+        binding=binding,
+    )
+
+    df = tsh.group_get(engine, 'group-to-optim')
+    assert_df("""
+               0     1     2
+2022-01-01   4.0   5.0   6.0
+2022-01-02   7.0   8.0   9.0
+2022-01-03  10.0  11.0  12.0
+""", df)
