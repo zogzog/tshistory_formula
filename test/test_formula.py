@@ -2870,3 +2870,12 @@ def test_for_group_optimization(engine, tsh):
 2022-01-02   7.0   8.0   9.0
 2022-01-03  10.0  11.0  12.0
 """, df)
+
+    # The ts-c series is loaded 3 times
+    # stdout:
+    """
+Starting hijacking...
+Hijacking: evaluate ts-c
+Hijacking: evaluate ts-c
+Hijacking: evaluate ts-c
+    """
