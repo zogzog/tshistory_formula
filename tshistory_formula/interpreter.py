@@ -250,18 +250,26 @@ class BridgeInterpreter(Interpreter):
     series world
     """
     __slots__ = ('env', 'cn', 'tsh', 'getargs', 'histories', 'vcache', 'auto',
-                 'groups', 'binding')
+                 'groups', 'binding', 'memory_cache')
 
     def __init__(self, *args, groups, binding):
         super().__init__(*args)
         self.groups = groups
         self.binding = binding
+        self.memory_cache = {}
 
     def get(self, seriesname, _getargs):
         bound_series = self.binding['series'] == seriesname
         seriescount = sum(bound_series)
         if seriescount == 0:
-            return super().get(seriesname, _getargs)
+            key = (seriesname, *list(_getargs.values()))
+            if key not in self.memory_cache:
+                print(f'Hijacking: evaluate {seriesname}')
+                result = super().get(seriesname, _getargs)
+                self.memory_cache[key] = result
+                return result
+            print(f'Hijacking: load from cache {seriesname}')
+            return self.memory_cache[key]
         elif seriescount > 1:
             raise Exception
 

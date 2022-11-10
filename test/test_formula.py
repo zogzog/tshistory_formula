@@ -2876,6 +2876,6 @@ def test_for_group_optimization(engine, tsh):
     """
 Starting hijacking...
 Hijacking: evaluate ts-c
-Hijacking: evaluate ts-c
-Hijacking: evaluate ts-c
+Hijacking: load from cache ts-c
+Hijacking: load from cache ts-c
     """
