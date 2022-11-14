@@ -225,11 +225,17 @@ def register_formula_bindings(self,
     """Define a group by association of an existing series formula
     and a `bindings` object.
 
-    Given a formula:
+    The designated series formula will be then interpreted as a group
+    formula.
 
-    (add (series "foo") (series "bar") (series "quux"))
+    And the bindings object provides mappings that tell which
+    components of the formula are to be interpreted as groups.
 
-    You want to treat "foo" and "bar" as groups.
+    Given a formula named "form1":
+
+    `(add (series "foo") (series "bar") (series "quux"))`
+
+    ... were one wants to treat "foo" and "bar" as groups.
     The binding is expressed as a dataframe:
 
         binding = pd.DataFrame(
@@ -237,8 +243,25 @@ def register_formula_bindings(self,
             ['foo', 'foo-group', 'group'],
             ['bar', 'bar-group', 'group'],
         ],
-        columns=('series', 'group', 'ensemble')
+        columns=('series', 'group', 'family')
     )
+
+    The complete registration looks like:
+
+    register_formula_bindings(
+        'groupname',
+        'form1',
+        pd.DataFrame(
+        [
+            ['foo', 'foo-group', 'group'],
+            ['bar', 'bar-group', 'group'],
+        ],
+        columns=('series', 'group', 'family')
+    ))
+
+    Within a given famility, all groups must have the same number of
+    members (series) and the member roles are considered equivalent
+    (e.g. meteorological scenarios).
 
     """
     with self.engine.begin() as cn:
