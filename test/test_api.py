@@ -479,6 +479,15 @@ def test_group_formula(tsa):
 2015-01-05  5.0  6.0  7.0
 """, df)
 
+    assert tsa.group_metadata('difference') == {}
+    assert tsa.group_metadata('difference', all=True) == {
+        'tzaware': False,
+        'index_type': 'datetime64[ns]',
+        'value_type': 'float64',
+        'index_dtype': '<M8[ns]',
+        'value_dtype': '<f8'
+    }
+
     # formula of formula
     # we add the same series that was substracted,
     # hence we msut retrieve the original dataframe group1
@@ -591,12 +600,25 @@ def test_group_bound_formula(tsa):
     assert ('hijacking', 'bound') in cat
 
     assert tsa.group_metadata('hijacking') == {}
+    assert tsa.group_metadata('hijacking', all=True) == {
+        'index_dtype': '|M8[ns]',
+        'index_type': 'datetime64[ns, UTC]',
+        'tzaware': True,
+        'value_dtype': '<f8',
+        'value_type': 'float64'
+    }
     tsa.update_group_metadata('hijacking', {'foo': 'bar'})
     assert tsa.group_metadata('hijacking') == {'foo': 'bar'}
+    assert tsa.group_metadata('hijacking', all=True) == {
+        'index_dtype': '|M8[ns]',
+        'index_type': 'datetime64[ns, UTC]',
+        'tzaware': True,
+        'value_dtype': '<f8',
+        'value_type': 'float64',
+        'foo': 'bar'
+    }
 
     tsa.group_delete('hijacking')
     assert not tsa.group_exists('hijacking')
 
     assert tsa.group_metadata('hijacking') is None
-    with pytest.raises(AssertionError):
-        tsa.update_group_metadata('hijacking', {'foo': 'bar'})

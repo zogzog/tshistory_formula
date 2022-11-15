@@ -972,23 +972,34 @@ class timeseries(basets):
             assert kind == 'bound'
             table, col = 'group_binding', 'groupname'
 
-        return cn.execute(
+        meta = cn.execute(
             f'select metadata from "{self.namespace}".{table} '
             f'where {col} = %(name)s',
             name=name
-        ).scalar() or {}
+        ).scalar()
+
+        return meta
 
     @tx
-    def update_group_metadata(self, cn, name, meta):
+    def update_group_metadata(self, cn, name, metadata, internal=True):
         kind = self.group_type(cn, name)
         if kind == 'primary':
-            return super().update_group_metadata(cn, name, meta)
+            return super().update_group_metadata(cn, name, metadata, internal)
 
         if kind == 'formula':
             table, col = 'group_formula', 'name'
         else:
             assert kind == 'bound'
             table, col = 'group_binding', 'groupname'
+
+        meta = self.group_metadata(cn, name) or {}
+        # remove al but internal stuff
+        newmeta = {
+            key: meta[key]
+            for key in self.metakeys
+            if meta.get(key) is not None
+        }
+        newmeta.update(metadata)
 
         sql = (
             f'update "{self.namespace}".{table} '
@@ -997,7 +1008,7 @@ class timeseries(basets):
         )
         cn.execute(
             sql,
-            metadata=json.dumps(meta),
+            metadata=json.dumps(newmeta),
             name=name
         )
 
@@ -1020,6 +1031,15 @@ class timeseries(basets):
                 f'formula `{name}` must return a `DataFrame`, not `{rtype.__name__}`'
             )
 
+        # build metadata & check compat
+        seriesmeta = self.find_metas(cn, tree)
+        if not all(seriesmeta.values()) and reject_unknown:
+            badseries = [k for k, v in seriesmeta.items() if not v]
+            raise ValueError(
+                f'Formula `{name}` refers to unknown series '
+                f'{", ".join("`%s`" % s for s in badseries)}'
+            )
+
         sql = (
             f'insert into "{self.namespace}".group_formula (name, text) '
             'values (%(name)s, %(text)s) '
@@ -1031,6 +1051,12 @@ class timeseries(basets):
             name=name,
             text=formula
         )
+
+        tzaware = self.check_tz_compatibility(cn, tree)
+        coremeta = self.default_meta(tzaware)
+        meta = self.group_metadata(cn, name) or {}
+        meta = dict(meta, **coremeta)
+        self.update_group_metadata(cn, name, meta, internal=True)
 
     @tx
     def group_formula(self, cn, groupname):
@@ -1256,6 +1282,17 @@ class timeseries(basets):
             sname=formulaname,
             binding=binding.to_json(orient='records')
         )
+
+        seriesmeta = {
+            k: v
+            for k, v in self.metadata(cn, formulaname).items()
+            if k in self.metakeys
+        }
+        metadata = self.group_metadata(cn, groupname) or {}
+        # make sure we derive the internals from the series meta
+        metadata.update(seriesmeta)
+
+        self.update_group_metadata(cn, groupname, metadata, internal=True)
 
     @tx
     def bindings_for(self, cn, groupname):
