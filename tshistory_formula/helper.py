@@ -81,7 +81,43 @@ def inject_toplevel_bindings(tree, qargs):
     return top
 
 
-def expanded(tsh, cn, tree, stopnames=(), scoped=None, scopes=True):
+def has_names(tsh, cn, tree, names, stopnames):
+    if tree[0] == 'series':
+        name = tree[1]
+        if name in names:
+            return True
+        if tsh.type(cn, name) == 'formula':
+            return has_names(
+                tsh,
+                cn,
+                expanded(tsh, cn, tree, stopnames=names),
+                names,
+                stopnames
+            )
+
+    for item in tree[1:]:
+        if isinstance(item, list):
+            if has_names(
+                tsh,
+                cn,
+                expanded(tsh, cn, item, stopnames=names),
+                names,
+                stopnames,
+            ):
+              return True
+
+    return False
+
+
+def expanded(
+        tsh,
+        cn,
+        tree,
+        stopnames=(),
+        shownames=(),
+        scoped=None,
+        scopes=True
+):
     # handle scoped parameter (internal memo)
     scoped = set() if scoped is None else scoped
 
@@ -95,29 +131,58 @@ def expanded(tsh, cn, tree, stopnames=(), scoped=None, scopes=True):
             scoped.add(id(tree))
             rewriter = ARGSCOPES[op]
             return rewriter(
-                expanded(tsh, cn, tree, stopnames, scoped, scopes)
+                expanded(
+                    tsh,
+                    cn,
+                    tree,
+                    stopnames,
+                    shownames,
+                    scoped,
+                    scopes,
+                )
             )
 
     if op == 'series':
         metas = METAS.get(op)
         seriesmeta = metas(cn, tsh, tree) if metas else None
         name, _ = seriesmeta.popitem()
+        if shownames and not has_names(tsh, cn, tree, shownames, ()):
+            return tree
+        if name in shownames:
+            return tree
         if name in stopnames:
             return tree
         if tsh.type(cn, name) == 'formula':
             formula = tsh.formula(cn, name)
             options = extract_auto_options(tree)
             if not options:
-                return expanded(tsh, cn, parse(formula), stopnames, scopes=scopes)
+                return expanded(
+                    tsh,
+                    cn,
+                    parse(formula),
+                    stopnames,
+                    shownames,
+                    scopes=scopes,
+                )
             return [
                 Symbol('options'),
-                expanded(tsh, cn, parse(formula), stopnames, scopes=scopes),
+                expanded(
+                    tsh,
+                    cn,
+                    parse(formula),
+                    stopnames,
+                    shownames,
+                    scopes=scopes,
+                ),
             ] + options
+
 
     newtree = []
     for item in tree:
         if isinstance(item, list):
-            newtree.append(expanded(tsh, cn, item, stopnames, scopes=scopes))
+            newtree.append(
+                expanded(tsh, cn, item, stopnames, shownames, scopes=scopes)
+            )
         else:
             newtree.append(item)
     return newtree

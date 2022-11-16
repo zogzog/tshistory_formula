@@ -29,6 +29,7 @@ from tshistory_formula.helper import (
     constant_fold,
     _extract_from_expr,
     expanded,
+    has_names,
     _name_from_signature_and_args,
     name_of_expr,
     rename_operator
@@ -1898,6 +1899,92 @@ def test_expanded_stopnames(engine, tsh):
         '(row-mean'
         ' (series "bottom-expandme2" #:fill 0 #:weight 1.5)'
         ' (options (series "base-expand-me2") #:fill 1))'
+    )
+
+
+def test_expanded_shownames(engine, tsh):
+    """
+    This test presents the shownames option of expanded_formula
+    Shownames is an iterable of series names
+    Principle: starting from the root, the (named) nodes are iteratively
+    expanded, if and only if, one of the shownames belong on their descendants.
+
+    Our tree formula will be:
+    A-+-B--C
+      +-D--E--F--G
+    The shownames are ['E']
+    So the result should look like:
+    A-+-B
+      +-D--E
+    """
+    ts = pd.Series(
+        [1, 2, 3],
+        index=pd.date_range(dt(2022, 1, 1), periods=3, freq='D')
+    )
+
+    # primaries:
+    tsh.update(engine, ts, 'show-c', 'test')
+    tsh.update(engine, ts, 'show-g', 'test')
+
+    # formulas:
+    tsh.register_formula(engine, 'show-b', '(* 2 (series "show-c"))')
+    tsh.register_formula(engine, 'show-f', '(* 1 (series "show-g"))')
+    tsh.register_formula(engine, 'show-e', '(* 3 (series "show-f"))')
+    tsh.register_formula(engine, 'show-d', '(* 4 (series "show-e"))')
+    tsh.register_formula(
+        engine,
+        'show-a',
+        '(add (series "show-b") (series "show-d"))'
+    )
+
+    assert has_names(
+        tsh,
+        engine,
+        lisp.parse('(series "show-d")'),
+        ('show-f',),
+        ()
+    )
+    assert not has_names(
+        tsh,
+        engine,
+        lisp.parse(tsh.formula(engine, 'show-d')),
+        ('nawak',),
+        ()
+    )
+    formula_semi_expanded = expanded(
+        tsh,
+        engine,
+        lisp.parse(tsh.formula(engine, 'show-a')),
+        shownames=('show-e',)
+    )
+
+    assert lisp.serialize(formula_semi_expanded) == (
+        '(add'
+        ' (series "show-b")'
+        ' (* 4 (series "show-e")))'
+    )
+
+    """
+    New case:
+    Same tree
+    A-+-B--C
+      +-D--E--F--G
+    The shownames are now ['D']
+    So the result should look like:
+    A-+-B
+      +-D
+    """
+    formula_semi_expanded = expanded(
+        tsh,
+        engine,
+        lisp.parse(tsh.formula(engine, 'show-a')),
+        shownames=('show-d',)
+    )
+
+    assert lisp.serialize(formula_semi_expanded) == (
+        '(add'
+        ' (series "show-b")'
+        ' (series "show-d"))'
     )
 
 
