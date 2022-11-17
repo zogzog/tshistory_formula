@@ -155,6 +155,74 @@ def init_db(db_uri, namespace):
     formula_schema(namespace).create(engine)
 
 
+@click.command(name='fix-groups-metadata')
+@click.argument('db-uri')
+@click.option('--namespace', default='tsh')
+def fix_groups_metadata(db_uri, namespace='tsh'):
+    """setup the missing internal metadata on all group kinds
+    (primary, formula, bound)
+    """
+    engine = create_engine(find_dburi(db_uri))
+    ns = namespace
+    tsh = timeseries(namespace)
+
+    for name, kind in tsh.list_groups(engine).items():
+        print(kind, name)
+        if kind == 'primary':
+            with engine.begin() as cn:
+                meta = tsh.group_metadata(cn, name) or {}
+                tsmeta = cn.execute(
+                    'select tsr.metadata '
+                    f'from "{ns}".group_registry as gr, '
+                    f'     "{ns}".groupmap as gm,'
+                    f'     "{ns}.group".registry as tsr '
+                    'where gr.name = %(name)s and '
+                    '      gr.id = gm.groupid and '
+                    '      gm.seriesid = tsr.id '
+                    'limit 1',
+                    name=name
+                ).scalar()
+                meta.update(tsmeta)
+                cn.execute(
+                    f'update "{ns}".group_registry '
+                    'set metadata = %(metadata)s '
+                    f'where name = %(name)s',
+                    metadata=json.dumps(meta),
+                    name=name
+                )
+            continue
+
+        elif kind == 'formula':
+            with engine.begin() as cn:
+                formula = tsh.group_formula(cn, name)
+                tree = parse(formula)
+                tzaware = tsh.check_tz_compatibility(cn, tree)
+                coremeta = tsh.default_meta(tzaware)
+                meta = tsh.group_metadata(cn, name) or {}
+                meta = dict(meta, **coremeta)
+                tsh.update_group_metadata(cn, name, meta, internal=True)
+            continue
+
+        else:
+            assert kind == 'bound'
+            with engine.begin() as cn:
+                formulaname = cn.execute(
+                    'select seriesname '
+                    f'from "{ns}"."group_binding" '
+                    'where groupname = %(gname)s',
+                    gname=name
+                ).scalar()
+                seriesmeta = {
+                    k: v
+                    for k, v in tsh.metadata(cn, formulaname).items()
+                    if k in tsh.metakeys
+                }
+                metadata = tsh.group_metadata(cn, name) or {}
+                # make sure we derive the internals from the series meta
+                metadata.update(seriesmeta)
+                tsh.update_group_metadata(cn, name, metadata, internal=True)
+
+
 @click.command(name='migrate-to-formula-groups')
 @click.argument('db-uri')
 @click.option('--namespace', default='tsh')

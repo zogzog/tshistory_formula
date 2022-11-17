@@ -34,6 +34,7 @@ setup(name='tshistory_formula',
           'migrate-to-content-cache=tshistory_formula.cli:migrate_to_content_hash',
           'rename-operators=tshistory_formula.cli:rename_operators',
           'migrate-to-dependants=tshistory_formula.cli:migrate_to_dependants',
+          'fix-groups-metadata=tshistory_formula.cli:fix_groups_metadata',
           'shell=tshistory_formula.cli:shell'
       ]},
       classifiers=[
