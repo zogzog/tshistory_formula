@@ -1357,14 +1357,25 @@ class timeseries(basets):
         # dependencies - we use exanded_formula using (stopnames) to
         # limit the expansion - this semi-expanded formula will be
         # used later in the interpretor
-        groupmap = defaultdict(dict)
-        formula = self.expanded_formula(
-            cn, name,
-            stopnames = binding['series'].values
+        tree = helper.expanded(
+            self,
+            cn,
+            parse(self.formula(cn, name)),
+            stopnames=binding['series'].values,
+            scopes=True,
         )
-        tree = parse(formula)
-        series = self.find_series(cn, tree)
-
+        new_tree = helper.inject_toplevel_bindings(
+            tree,
+            {
+                'revision_date': revision_date,
+                'from_value_date': from_value_date,
+                'to_value_date': to_value_date,
+            }
+        )
+        series = self.find_series(cn, new_tree)
+        formula = serialize(new_tree)
+        
+        groupmap = defaultdict(dict)
         for sname in series:
             df, family = self.get_bound_group(
                 cn,

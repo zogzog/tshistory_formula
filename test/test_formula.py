@@ -2759,10 +2759,11 @@ def test_group_bound_history(engine, tsh):
         pd.Timestamp('2022-04-07 01:00:00+0000', tz='UTC'),
     ]
 
+    rdate = utcdt(2022, 4, 5, 1)
     group_past = tsh.group_get(
         engine,
         'formula_group_history',
-        revision_date=utcdt(2022, 4, 5, 1)
+        revision_date=rdate
     )
 
     hist = tsh.group_history(
@@ -2773,8 +2774,17 @@ def test_group_bound_history(engine, tsh):
     assert_df("""
                                0      1      2
 2022-04-05 00:00:00+00:00  13.14  15.14  17.14
-2022-04-06 00:00:00+00:00  16.14  18.14  20.14
-2022-04-07 00:00:00+00:00  19.14  21.14  23.14
+2022-04-06 00:00:00+00:00  15.14  17.14  19.14
+2022-04-07 00:00:00+00:00  17.14  19.14  21.14
 """, group_past)
 
-    assert hist[utcdt(2022, 4, 5, 1)].equals(group_past)
+    assert hist[rdate].equals(group_past)
+    # check: state of each component and its sum
+    ts_c_past = tsh.get(engine, 'series-c', revision_date=rdate)
+    df_a_past = tsh.group_get(engine, 'group-a', revision_date=rdate)
+    df_b_past = tsh.group_get(engine, 'group-b', revision_date=rdate)
+    assert group_past.equals(
+        df_b_past.add(ts_c_past, axis=0).dropna() + df_a_past
+    )
+
+
