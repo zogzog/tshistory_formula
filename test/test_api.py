@@ -572,6 +572,32 @@ def test_group_bound_formula(tsa):
         columns=('series', 'group', 'family')
     )
 
+    with pytest.raises(AssertionError):
+        tsa.register_formula_bindings(
+            'hijacking',
+            'hijacked',
+            pd.DataFrame(
+                [
+                    ['NOPE', 'temp-ens', 'meteo'],
+                    ['base-wind', 'wind-ens', 'meteo'],
+                ],
+                columns=('series', 'group', 'family')
+            )
+        )
+
+    with pytest.raises(AssertionError):
+        tsa.register_formula_bindings(
+            'hijacking',
+            'hijacked',
+            pd.DataFrame(
+                [
+                    ['base-temp', 'temp-ens', 'meteo'],
+                    ['base-wind', 'NOPE', 'meteo'],
+                ],
+                columns=('series', 'group', 'family')
+            )
+        )
+
     tsa.register_formula_bindings(
         'hijacking',
         'hijacked',

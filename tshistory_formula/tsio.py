@@ -1262,6 +1262,11 @@ class timeseries(basets):
                 'bindings must have `series` `groups` and `family` columns'
             )
 
+        for gname in binding.group:
+            assert self.group_exists(cn, gname), f'Group `{gname}` does not exist.'
+        for sname in binding.series:
+            assert self.exists(cn, sname), f'Series `{sname}` does not exist.'
+
         if not len(binding):
             raise ValueError(f'formula `{formulaname}` has an empty binding')
 
