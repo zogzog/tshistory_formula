@@ -1354,14 +1354,15 @@ class timeseries(basets):
                           revision_date=None):
         # find all the series in the formula that are referenced in
         # the binding since the series can be anywhere in the
-        # dependencies - we use exanded_formula using (stopnames) to
-        # limit the expansion - this semi-expanded formula will be
+        # dependencies - we use exanded_formula using (shownames) to
+        # limit the expansion to the minimum necessary to show such names.
+        # This semi-expanded formula will be
         # used later in the interpretor
         tree = helper.expanded(
             self,
             cn,
             parse(self.formula(cn, name)),
-            stopnames=binding['series'].values,
+            shownames=binding['series'].values,
             scopes=True,
         )
         new_tree = helper.inject_toplevel_bindings(

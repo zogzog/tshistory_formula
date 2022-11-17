@@ -146,7 +146,7 @@ def expanded(
         metas = METAS.get(op)
         seriesmeta = metas(cn, tsh, tree) if metas else None
         name, _ = seriesmeta.popitem()
-        if shownames and not has_names(tsh, cn, tree, shownames, ()):
+        if len(shownames) and not has_names(tsh, cn, tree, shownames, ()):
             return tree
         if name in shownames:
             return tree

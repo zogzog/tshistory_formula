@@ -2962,7 +2962,8 @@ def test_for_group_optimization(engine, tsh):
     # stdout:
     """
 Starting hijacking...
-Hijacking: evaluate ts-c
-Hijacking: load from cache ts-c
-Hijacking: load from cache ts-c
+Hijacking: evaluate ts-b
+Hijacking: load from cache ts-b
+Hijacking: load from cache ts-b
+
     """
