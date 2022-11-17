@@ -1262,16 +1262,26 @@ class timeseries(basets):
                 'bindings must have `series` `groups` and `family` columns'
             )
 
+        if self.type(cn, formulaname) != 'formula':
+            raise ValueError(f'`{formulaname}` is not a formula')
+
+        grtzstate = []
         for gname in binding.group:
             assert self.group_exists(cn, gname), f'Group `{gname}` does not exist.'
+            grtzstate.append(
+                (gname, self.group_metadata(cn, gname)['tzaware'])
+            )
+        tstzstate = []
         for sname in binding.series:
             assert self.exists(cn, sname), f'Series `{sname}` does not exist.'
+            tstzstate.append(
+                (sname, self.metadata(cn, sname)['tzaware'])
+            )
+        for (gname, gtz), (sname, stz) in zip(grtzstate, tstzstate):
+            assert gtz == stz, f'Series `{sname}` and group `{gname}` must be tz-compatible.'
 
         if not len(binding):
             raise ValueError(f'formula `{formulaname}` has an empty binding')
-
-        if self.type(cn, formulaname) != 'formula':
-            raise ValueError(f'`{formulaname}` is not a formula')
 
         gtype = self.group_type(cn, groupname)
         if self.group_exists(cn, groupname) and gtype != 'bound':

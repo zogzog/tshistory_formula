@@ -327,7 +327,7 @@ def test_bound_formula(tsx):
 
     df1 = gengroup(
         n_scenarios=2,
-        from_date=dt(2021, 1, 1),
+        from_date=utcdt(2021, 1, 1),
         length=3,
         freq='D',
         seed=0
@@ -338,15 +338,15 @@ def test_bound_formula(tsx):
         'Arthur'
     )
     assert_df("""
-            0  1
-2021-01-01  0  1
-2021-01-02  1  2
-2021-01-03  2  3
+                           0  1
+2021-01-01 00:00:00+00:00  0  1
+2021-01-02 00:00:00+00:00  1  2
+2021-01-03 00:00:00+00:00  2  3
 """, df1)
 
     df2 = gengroup(
         n_scenarios=2,
-        from_date=dt(2021, 1, 1),
+        from_date=utcdt(2021, 1, 1),
         length=3,
         freq='D',
         seed=1
@@ -357,10 +357,10 @@ def test_bound_formula(tsx):
         'Zéphir'
     )
     assert_df("""
-            0  1
-2021-01-01  1  2
-2021-01-02  2  3
-2021-01-03  3  4
+                           0  1
+2021-01-01 00:00:00+00:00  1  2
+2021-01-02 00:00:00+00:00  2  3
+2021-01-03 00:00:00+00:00  3  4
 """, df2)
 
     binding = pd.DataFrame(
@@ -390,10 +390,10 @@ def test_bound_formula(tsx):
 
     df = tsx.group_get('hijacking')
     assert_df("""
-              0    1
-2021-01-01  1.0  3.0
-2021-01-02  3.0  5.0
-2021-01-03  5.0  7.0
+                             0    1
+2021-01-01 00:00:00+00:00  1.0  3.0
+2021-01-02 00:00:00+00:00  3.0  5.0
+2021-01-03 00:00:00+00:00  5.0  7.0
 """, df)
 
     assert tsx.group_exists('hijacking')
