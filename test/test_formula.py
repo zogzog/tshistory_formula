@@ -2778,6 +2778,7 @@ def test_group_bound_history(engine, tsh):
 2022-04-07 00:00:00+00:00  17.14  19.14  21.14
 """, group_past)
 
+    # coherence between .get() with revdate and history:
     assert hist[rdate].equals(group_past)
     # check: state of each component and its sum
     ts_c_past = tsh.get(engine, 'series-c', revision_date=rdate)
@@ -2786,5 +2787,16 @@ def test_group_bound_history(engine, tsh):
     assert group_past.equals(
         df_b_past.add(ts_c_past, axis=0).dropna() + df_a_past
     )
+    group_past = tsh.group_get(
+        engine,
+        'formula_group_history',
+        revision_date=rdate,
+        from_value_date=utcdt(2022, 4, 5, 12),
+        to_value_date=utcdt(2022, 4, 6, 12)
+    )
 
+    assert_df("""
+                               0      1      2
+2022-04-06 00:00:00+00:00  15.14  17.14  19.14
+""", group_past)
 

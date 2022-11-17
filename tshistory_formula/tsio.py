@@ -1392,11 +1392,7 @@ class timeseries(basets):
         assert groupmap
 
         bi = interpreter.BridgeInterpreter(
-            cn, self, {
-                'from_value_date': from_value_date,
-                'to_value_date': to_value_date,
-                'revision_date': revision_date
-            },
+            cn, self, {},
             groups=groupmap,
             binding=binding,
         )
