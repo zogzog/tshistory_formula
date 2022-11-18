@@ -278,7 +278,10 @@ class formula_httpapi(httpapi):
                         api.abort(409, f'`{args.name}` exists but is not a bound formula')
 
                     name, bindings = tsa.bindings_for(args.name)
-                    return (name, bindings.to_dict(orient='records')), 200
+                    return {
+                        'name': name,
+                        'bindings': bindings.to_dict(orient='records')
+                    }, 200
 
                 @api.expect(boundformula)
                 @onerror
@@ -437,8 +440,8 @@ class FormulaClient(Client):
             }
         )
         if res.status_code == 200:
-            name, bindings = res.json()
-            return name, pd.DataFrame(bindings)
+            out = res.json()
+            return out['name'], pd.DataFrame(out['bindings'])
 
         if res.status_code == 404:
             return None
