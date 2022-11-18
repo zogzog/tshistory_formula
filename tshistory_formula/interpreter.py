@@ -264,11 +264,9 @@ class BridgeInterpreter(Interpreter):
         if seriescount == 0:
             key = (seriesname, *list(_getargs.values()))
             if key not in self.memory_cache:
-                print(f'Hijacking: evaluate {seriesname}')
                 result = super().get(seriesname, _getargs)
                 self.memory_cache[key] = result
                 return result
-            print(f'Hijacking: load from cache {seriesname}')
             return self.memory_cache[key]
         elif seriescount > 1:
             raise Exception
