@@ -90,7 +90,6 @@ def formula(self,
         if tree:
             return serialize(tree)
 
-    print(name, '-> to remote')
     return self.othersources.formula(
         name,
         display=display,
