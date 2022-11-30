@@ -22,7 +22,8 @@ from psyl.lisp import (
 from tshistory_formula.registry import (
     FUNCS,
     METAS,
-    ARGSCOPES
+    ARGSCOPES,
+    AUTO,
 )
 
 
@@ -217,6 +218,78 @@ def constant_fold(tree):
             return evaluate(serialize(newtree), _CFOLDENV)
 
     return newtree
+
+
+def update_dict_list(ds0, ds1):
+    for k, vs in ds1.items():
+        if k in ds0:
+            ds0[k].extend(ds1[k])
+        else:
+            ds0[k] = ds1[k]
+    return ds0
+
+
+def sort_dict_list(ds):
+    return {k : sorted(ds[k]) for k in sorted(ds)}
+
+
+def find_autos(cn, tsh, name):
+    return sort_dict_list(
+        _find_autos(
+            cn,
+            tsh,
+            parse(
+                tsh.expanded_formula(cn, name)
+            )
+        )
+    )
+
+
+def _find_autos(cn, tsh, tree):
+    autos = {}
+    auto_without_series = AUTO.copy()
+    auto_without_series.pop('series')
+    for item in tree:
+        if isinstance(item, list):
+            autos = update_dict_list(
+                autos,
+                _find_autos(cn, tsh, item),
+            )
+        elif item in auto_without_series:
+            update_dict_list(
+                autos,
+                {str(item): [serialize(tree)]},
+            )
+    return autos
+
+
+def scan_descendant_nodes(cn, tsh, name):
+    primaries = []
+    named_nodes = []
+    depths = []
+
+    def explore_tree(cn, tsh, tree, depth):
+        depth += 1
+        depths.append(depth)
+        lseries = tsh.find_series(cn, tree)
+        for series in lseries:
+            formula = tsh.formula(cn, series)
+            if not formula:
+                # could be the forged name of an autotrophic operator
+                if tsh.exists(cn, series):
+                    primaries.append(series)
+                continue
+            named_nodes.append(series)
+            subtree = parse(formula)
+            explore_tree(cn, tsh, subtree, depth)
+
+    tree = parse(tsh.formula(cn, name))
+    explore_tree(cn, tsh, tree, depth=0)
+    return {
+        'named-nodes' : sorted(named_nodes),
+        'degree': max(depths),
+        'primaries': sorted(primaries),
+    }
 
 
 # signature building

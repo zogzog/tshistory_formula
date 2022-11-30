@@ -33,7 +33,9 @@ from tshistory_formula.helper import (
     has_names,
     _name_from_signature_and_args,
     name_of_expr,
-    rename_operator
+    rename_operator,
+    find_autos,
+    scan_descendant_nodes,
 )
 from tshistory_formula.interpreter import (
     Interpreter,
@@ -2215,6 +2217,159 @@ def test_fill_and_clip(engine, tsh):
 
     # everything is fine, now. The equilibrium is restored ^-^
 
+
+def test_diagnose(engine, tsh):
+    """
+    let's build some complex tree
+
+    A-+-B-+-C(2 series)
+      |   +-D(2 autotrophs)
+      |
+      + E-+-F---G(1 series)
+          +-H(1 autotroph)
+
+    We want to produce a number of statistics:
+    - Number of named nodes         (7)
+    - Max depth (from named nodes)  (4)
+    - Numbers of individual series  (6)
+        - from operator Series      (3) (with list of names
+        - from autotrophic operators(3) (with list of operator calls)
+            - operator a            (2)
+            - operator b            (1)
+    """
+    OperatorHistory.FUNCS = None
+    # series
+    ts = pd.Series(
+        [2] * 4,
+        index=pd.date_range(
+            start=dt(2022, 1, 1),
+            freq='D',
+            periods=4
+        )
+    )
+    tsh.update(engine, ts, 'diag-C1', 'test')
+    tsh.update(engine, ts, 'diag-C2', 'test')
+    tsh.update(engine, ts, 'diag-G1', 'test')
+
+    # autotrophics
+    OperatorHistory.FUNCS = None
+
+    @func('diag-auto-1', auto=True)
+    def diag1(
+            __interpreter__,
+            __from_value_date__,
+            __to_value_date__,
+            __revision_date__,
+            ref: str,
+    ) -> pd.Series:
+        return ts
+
+    @finder('diag-auto-1')
+    def diag1(cn, tsh, tree):
+        return {f'diag-1': tree}
+
+    @func('diag-auto-2', auto=True)
+    def diag2(
+            __interpreter__,
+            __from_value_date__,
+            __to_value_date__,
+            __revision_date__,
+            ref: str,
+    ) -> pd.Series:
+        return ts
+
+    @finder('diag-auto-2')
+    def diag2(cn, tsh, tree):
+        return {f'diag-2': tree}
+
+    formula = '(priority (series "diag-C1") (series "diag-C2"))'
+    tsh.register_formula(engine, 'diag-C', formula)
+
+    formula = '(priority (diag-auto-1 "id-a") (diag-auto-2 "id-b"))'
+    tsh.register_formula(engine, 'diag-D', formula)
+
+    formula = '(add (series "diag-C") (series "diag-D"))'
+    tsh.register_formula(engine, 'diag-B', formula)
+
+    formula = '(resample (series "diag-G1") "D")'
+    tsh.register_formula(engine, 'diag-G', formula)
+
+    formula = '(* 3.14 (series "diag-G"))'
+    tsh.register_formula(engine, 'diag-F', formula)
+
+    formula = '(diag-auto-1 "id-c")'
+    tsh.register_formula(engine, 'diag-H', formula)
+
+    formula = '(add (series "diag-F") (series "diag-H"))'
+    tsh.register_formula(engine, 'diag-E', formula)
+
+    formula = '(add (series "diag-B") (series "diag-E"))'
+    tsh.register_formula(engine, 'diag-A', formula)
+
+    all_autos = find_autos(
+        engine,
+        tsh,
+        'diag-A',
+    )
+
+    assert all_autos == {
+        'diag-auto-1': ['(diag-auto-1 "id-a")', '(diag-auto-1 "id-c")'],
+        'diag-auto-2': ['(diag-auto-2 "id-b")']
+    }
+
+    nodes = scan_descendant_nodes(engine, tsh, 'diag-A')
+
+    assert nodes == {
+        'degree': 4,
+        'named-nodes': [
+            'diag-B',
+            'diag-C',
+            'diag-D',
+            'diag-E',
+            'diag-F',
+            'diag-G',
+            'diag-H'
+        ],
+        'primaries': ['diag-C1', 'diag-C2', 'diag-G1']
+    }
+
+    # Note: we define a new convention: i.e. the "degree" of a formula
+    # a formula that reference primary series has a degree of 1
+    # a formula that reference a formula of degree n has a degree of n+1
+    # by extension, the autotroph are of degree 0
+
+    stats = tsh.formula_stats(engine, 'diag-A')
+    assert stats == {
+        'autotrophics': {
+            'diag-auto-1': [
+                '(diag-auto-1 "id-a")',
+                '(diag-auto-1 "id-c")'
+            ],
+            'diag-auto-2': [
+                '(diag-auto-2 "id-b")'
+            ]
+        },
+        'cardinality': {
+            'autotrophics': 3,
+            'named-nodes': 7,
+            'primaries': 3
+        },
+        'degree': 4,
+        'named-nodes': [
+            'diag-B',
+            'diag-C',
+            'diag-D',
+            'diag-E',
+            'diag-F',
+            'diag-G',
+            'diag-H'
+        ],
+        'primaries': [
+            'diag-C1',
+            'diag-C2',
+            'diag-G1'
+        ]
+    }
 
 # groups
 

@@ -129,6 +129,18 @@ class timeseries(basets):
                 )
         return first_tzaware
 
+    def formula_stats(self, cn, name):
+        autos = helper.find_autos(cn, self, name)
+        nodes = helper.scan_descendant_nodes(cn, self, name)
+        nodes.update({'autotrophics': autos})
+        stats = {
+            'primaries' : len(nodes['primaries']),
+            'autotrophics': sum([len(v) for v in autos.values()]),
+            'named-nodes': len(nodes['named-nodes']),
+        }
+        nodes.update({'cardinality': stats})
+        return nodes
+
     @tx
     def register_dependants(self, cn, name, tree):
         cn.execute(
