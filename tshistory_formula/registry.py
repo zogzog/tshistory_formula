@@ -176,6 +176,26 @@ def gfinder(name):
     return decorator
 
 
+def gmeta(name):
+
+    def decorator(func):
+        def _ensure_meta_keys(func, *a, **kw):
+            res = func(*a, **kw)
+            for name, meta in res.items():
+                missing = _KEYS - set(meta.keys())
+                if len(missing):
+                    warn(
+                        f'{name} has missing metadata keys ({missing})'
+                    )
+            return res
+
+        dec = decorate(func, _ensure_meta_keys)
+        GMETAS[name] = dec
+        return dec
+
+    return decorator
+
+
 def ginsertion_dates(name):
 
     def decorator(func):

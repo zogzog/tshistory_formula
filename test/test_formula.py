@@ -24,6 +24,7 @@ from tshistory_formula.registry import (
     gfunc,
     gfinder,
     ginsertion_dates,
+    gmeta
 )
 from tshistory_formula.helper import (
     constant_fold,
@@ -2571,6 +2572,18 @@ def test_groups_autotrophic_history(engine, tsh):
     def auto_operator_finder(cn, tsh, tree):
         return {'gauto-operator': tree}
 
+    @gmeta('gauto-operator')
+    def auto_operator_meta(cn, tsh, tree):
+        return {
+            f'gauto-operator': {
+                'index_dtype': '<M8[ns]',
+                'index_type': 'datetime64[ns]',
+                'tzaware': False,
+                'value_dtype': '<f8',
+                'value_type': 'float64'
+            }
+        }
+
     @ginsertion_dates('gauto-operator')
     def auto_insertion_dates(
             cn,
@@ -2616,6 +2629,14 @@ def test_groups_autotrophic_history(engine, tsh):
         formula,
     )
     tsh.group_get(engine, 'higher_level')
+    meta = tsh.group_metadata(engine, 'higher_level')
+    assert meta == {
+        'tzaware': False,
+        'index_type': 'datetime64[ns]',
+        'value_type': 'float64',
+        'index_dtype': '<M8[ns]',
+        'value_dtype': '<f8'
+    }
 
     idates = tsh.group_insertion_dates(engine, 'higher_level')
 

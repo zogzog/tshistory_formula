@@ -27,6 +27,7 @@ from tshistory_formula.registry import (
     GFINDERS,
     GAUTO,
     GIDATES,
+    GMETAS
 )
 
 
@@ -1012,6 +1013,42 @@ class timeseries(basets):
             name=name
         )
 
+    def check_group_tz_compatibility(self, cn, tree):
+        """check that groups are timezone-compatible
+        """
+
+        def find_meta(tree, tzstatus, path=()):
+            op = tree[0]
+            path = path + (op,)
+            metas = GMETAS.get(op)
+            if metas:
+                for name, metadata in metas(cn, self, tree).items():
+                    tzaware = metadata['tzaware'] if metadata else None
+                    # no naive operator (yet) so we don't
+                    # have to handle it
+                    tzstatus[(name, path)] = tzaware
+            for item in tree:
+                if isinstance(item, list):
+                    find_meta(item, tzstatus, path)
+
+        metamap = {}
+        find_meta(tree, metamap)
+        if not metamap:
+            return {}
+
+        def tzlabel(status):
+            if status is None: return 'unknown'
+            return 'tzaware' if status else 'tznaive'
+
+        first_tzaware = next(iter(metamap.values()))
+        for (name, path), tzaware in metamap.items():
+            if first_tzaware != tzaware:
+                raise ValueError(
+                    f'Formula `{name}` has tzaware vs tznaive series:'
+                    f'{",".join("`%s:%s`" % (k, tzlabel(v)) for k, v in metamap.items())}'
+                )
+        return first_tzaware
+
     @tx
     def register_group_formula(self, cn,
                                name, formula):
@@ -1052,7 +1089,7 @@ class timeseries(basets):
             text=formula
         )
 
-        tzaware = self.check_tz_compatibility(cn, tree)
+        tzaware = self.check_group_tz_compatibility(cn, tree)
         coremeta = self.default_meta(tzaware)
         meta = self.group_metadata(cn, name) or {}
         meta = dict(meta, **coremeta)
