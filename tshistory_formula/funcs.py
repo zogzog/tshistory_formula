@@ -1,5 +1,5 @@
-from datetime import timedelta, datetime
-from typing import Union, Optional, Tuple
+from datetime import date, timedelta, datetime
+from typing import List, Union, Optional, Tuple
 from numbers import Number
 import calendar
 from functools import reduce
@@ -12,7 +12,8 @@ from dateutil.relativedelta import relativedelta
 
 from psyl.lisp import (
     buildargs,
-    Symbol
+    Keyword,
+    Symbol,
 )
 from tshistory.util import (
     compatible_date,
@@ -1334,3 +1335,193 @@ def integration_finder(cn, tsh, tree):
         tree[1]: tree,
         tree[2]: tree
     }
+
+
+# day of year
+
+def doy_scope_shift_transform(tree):
+    """Shift from_value_date/to_value_date when gathering series for doy-aggregation"""
+    _posargs, kwargs = buildargs(tree[1:])
+    depth = _posargs[1]
+    top = [
+        Symbol('let'),
+        Symbol('from_value_date'), [
+            Symbol('shifted'), Symbol('from_value_date'), Keyword('years'), -int(depth)
+        ],
+        Symbol('to_value_date'), [
+            Symbol('shifted'), Symbol('to_value_date'), Keyword('years'), -1],
+    ]
+    top.append(tree)
+    return top
+
+
+@func('doy-agg')
+@argscope('doy-agg', doy_scope_shift_transform)
+def doy_aggregation(
+        series: pd.Series,
+        depth: int,
+        method: str = "mean",
+        leap_day_rule: str = "linear",  # Literal["ignore", "linear", "as_is"]
+        valid_aggr_ratio: Number = 1.) -> pd.Series:
+    """
+    Computes a calculation `method` to aggregate data per day of year over `depth` years.
+
+    Examples:
+
+     `(doy-agg (series "foo") 4)`
+     `(doy-agg (series "bar") 10 #:method "median")`
+     `(doy-agg (series "quux") 4 #:leap_day_rule "ignore" #:valid_aggr_ratio 0.)`
+
+    The `method` keyword controls the function of aggregation (see
+    pandas DataFrameGroupBy aggregate).
+
+    The `leap_day_rule` keyword controls the policy to handle the leap day (February 29)
+        'as_is'     build leap year using aggregation of previous leap days
+        'ignore'    don't build leap day
+        'linear'    build leap day using the closest dates with linear extrapolation
+
+    The `valid_aggr_ratio` keyword controls the minimum ratio
+    (number_of_values_for_doy / depth) for a given day of year to be
+    valid (not set to nan).
+
+    For instance:
+       one is asking an aggregation over 4 previous years (depth=4)
+       for the January 1st (doy="01-01"), we have only 2 values over the period 2020-2023
+       then aggr_ratio for 2024-01-01 is 2/4=0.5
+       meaning value will be nan if valid_aggr_ratio < 0.5
+
+    """
+    try:
+        start, end = get_boundaries(series, depth)
+    except ValueError:
+        return empty_series(False)
+    assert leap_day_rule in ["ignore", "linear", "as_is"]
+    # L.info(
+    #     f"doy-agg from {start} to {end} ["
+    #     f" aggregator={method!r}"
+    #     f" leap_day_rule={leap_day_rule!r}"
+    #     f" valid_aggr_ratio={valid_aggr_ratio!r}"
+    #     f"]"
+    # )
+
+    habits_segments = []
+    for year in range(start.year, end.year + 1):
+        # L.info(f'Computing habits for year {year}')
+        # L.debug(f'aggregate by day of year')
+        doy_agg = aggregate_by_doy(
+            series,
+            from_year=year - depth,
+            to_year=year - 1,
+            method=method,
+        )
+        doy_agg['ratio'] = doy_agg['values_count'] / depth
+        # L.debug(f'replace insufficient points with nans [')
+        doy_agg.loc[doy_agg['ratio'] < valid_aggr_ratio, series.name] = np.nan
+        if (
+            not calendar.isleap(year)
+            or leap_day_rule in ('ignore', 'linear')
+        ):
+            # L.debug('drop leap day if exists')
+            doy_agg = doy_agg.drop(labels=['02-29'], errors='ignore')
+
+        segment = doy_agg[series.name]
+        # L.debug('build index from days of year')
+        segment.index = pd.to_datetime(
+            str(year) + '-' + segment.index.to_series(), format='%Y-%m-%d'
+        ).rename('datetime')
+        segment = segment[
+            (start <= segment.index)
+            & (segment.index <= end)
+        ]
+
+        if leap_day_rule == 'linear' and calendar.isleap(year):
+            # L.debug('extrapolate leap day')
+            linear_insert_date(segment, pd.Timestamp(f'{year}-2-29'))
+
+        # L.debug(f'add segment of {len(segment)} points')
+        habits_segments.append(segment)
+
+    # L.info(f'Concatenate and return {len(habits_segments)} segments')
+    return pd.concat(habits_segments).dropna()
+
+
+def aggregate_by_doy(
+        series: pd.Series,
+        from_year: int,
+        to_year: int,
+        method: str = 'mean') -> pd.DataFrame:
+    """
+    Return aggregation of data by day of year
+        pd.DataFrame with
+            index                   day_of_year  ("MM-DD")
+            column '{series.name}'  aggregated data for that day of year
+            column 'values_count'   number of years with data on that day
+    """
+    df = series.to_frame()
+    df = df.loc[
+        pd.Timestamp(f'{from_year}-1-1', tz=series.index.tz):
+        pd.Timestamp(f'{to_year}-12-31', tz=series.index.tz)
+    ]
+    df['not_na'] = series.notna()
+    df['day_of_year'] = df.index.strftime('%m-%d')
+    return df.groupby('day_of_year').aggregate(
+        {
+            series.name: method,
+            'not_na': sum,
+        }
+    ).rename({'not_na': 'values_count'}, axis=1)
+
+
+def get_boundaries(
+        series: pd.Series,
+        depth: int) -> Tuple[pd.Timestamp, pd.Timestamp]:
+    """
+    Return boundaries on which doy-aggregation over {depth} years can
+    be computed
+
+    """
+    if depth <= 0:
+        raise ValueError('depth must be integer strictly greater than 0')
+
+    if series.empty:
+        raise ValueError('series is empty')
+
+    fst_date: date = series.index[0].date()
+    lst_date: date = series.index[-1].date()
+
+    start = fst_date + relativedelta(years=depth)
+    end = lst_date + relativedelta(years=1)
+    if start > end:
+        raise ValueError(
+            f'series boundaries [{fst_date}, {lst_date}] '
+            f'are not wide enough to aggregate '
+            f'per day of years on {depth} years'
+        )
+    return pd.Timestamp(start), pd.Timestamp(end)
+
+
+def linear_insert_date(series: pd.Series, d: datetime) -> pd.Series:
+    """
+    Insert date in series (inplace) using linear extrapolation with
+    surrounding values
+
+    """
+    if d in series:
+        return series
+
+    try:
+        prev_date = series.loc[:d].index[-1]
+        next_date = series.loc[d + timedelta(days=1):].index[0]
+    except IndexError:
+        # No surrounding value, can't insert date
+        return series
+
+    prev_gap = (d - prev_date).days
+    next_gap = (next_date - d).days
+
+    series.at[d] = (
+        series.loc[prev_date] * next_gap
+        + series.loc[next_date] * prev_gap
+    ) / (prev_gap + next_gap)
+    series.sort_index(inplace=True)
+    return series
