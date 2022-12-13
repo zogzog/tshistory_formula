@@ -1249,7 +1249,29 @@ class timeseries(basets):
             # we only return the idates when all the groups are present
             # This API point merely provide the definition period
             # where the hijacking is fully usable (and backtestable)
-            groups_names = bindinfo[1]['group']
+            seriesname, bindings = bindinfo
+
+            tree = helper.expanded(
+                self,
+                cn,
+                parse(self.formula(cn, seriesname)),
+                shownames=bindings['series'].values,
+                scopes=False
+            )
+            series = self.find_series(cn, tree)
+
+            # let's only keep the groups that are really used
+            # users like to provide mappings that contain
+            # other (irrelevant) groups
+            groups_names = {
+                gname for sname, gname in
+                zip(
+                    bindings['series'],
+                    bindings['group']
+                )
+                if sname in series
+            }
+
             all_idates = [
                 self.group_insertion_dates(cn, gn, **bounds)
                 for gn in groups_names
@@ -1425,7 +1447,7 @@ class timeseries(basets):
         )
         series = self.find_series(cn, new_tree)
         formula = serialize(new_tree)
-        
+
         groupmap = defaultdict(dict)
         for sname in series:
             df, family = self.get_bound_group(

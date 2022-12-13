@@ -3022,16 +3022,14 @@ def test_group_bound_history(engine, tsh):
 
     idates = tsh.group_insertion_dates(engine, 'formula_group_history')
 
-    with pytest.raises(AssertionError):
-        assert idates == [
-            pd.Timestamp('2022-04-04 00:00:00+0000', tz='UTC'),
-            pd.Timestamp('2022-04-04 01:00:00+0000', tz='UTC'),
-            pd.Timestamp('2022-04-05 00:00:00+0000', tz='UTC'),
-            pd.Timestamp('2022-04-05 01:00:00+0000', tz='UTC'),
-            pd.Timestamp('2022-04-06 01:00:00+0000', tz='UTC'),
-            pd.Timestamp('2022-04-07 01:00:00+0000', tz='UTC'),
-        ]
-    return
+    assert idates == [
+        pd.Timestamp('2022-04-04 00:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-04-04 01:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-04-05 00:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-04-05 01:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-04-06 01:00:00+0000', tz='UTC'),
+        pd.Timestamp('2022-04-07 01:00:00+0000', tz='UTC'),
+    ]
 
     rdate = utcdt(2022, 4, 5, 1)
     group_past = tsh.group_get(
