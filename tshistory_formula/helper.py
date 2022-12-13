@@ -87,11 +87,12 @@ def has_names(tsh, cn, tree, names, stopnames):
         name = tree[1]
         if name in names:
             return True
+
         if tsh.type(cn, name) == 'formula':
             return has_names(
                 tsh,
                 cn,
-                expanded(tsh, cn, tree, stopnames=names),
+                expanded(tsh, cn, tree, stopnames=names, scopes=False),
                 names,
                 stopnames
             )
@@ -101,7 +102,7 @@ def has_names(tsh, cn, tree, names, stopnames):
             if has_names(
                 tsh,
                 cn,
-                expanded(tsh, cn, item, stopnames=names),
+                expanded(tsh, cn, item, stopnames=names, scopes=False),
                 names,
                 stopnames,
             ):

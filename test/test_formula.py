@@ -3208,5 +3208,5 @@ def test_bound_formula_group_crash(engine, tsh):
         binding=binding,
     )
 
-    with pytest.raises(RecursionError):
-        tsh.group_get(engine, 'crash-group')
+    # we do not go into a recursion error any longer
+    tsh.group_get(engine, 'crash-group')
