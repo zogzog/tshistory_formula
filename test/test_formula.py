@@ -3152,3 +3152,61 @@ Hijacking: load from cache ts-b
 Hijacking: load from cache ts-b
 
     """
+
+
+def test_bound_formula_group_crash(engine, tsh):
+    ts = pd.Series(
+        [1, 2, 3],
+        index=pd.date_range(dt(2023, 1, 1), periods=3, freq='D')
+    )
+
+    tsh.update(
+        engine,
+        ts,
+        'crash-base',
+        'Babbar',
+        insertion_date=utcdt(2023, 1, 1)
+    )
+
+    tsh.register_formula(
+        engine,
+        'crash-bottom',
+        '(slice (series "crash-base") #:fromdate (date "2022-1-1"))'
+    )
+    tsh.register_formula(
+        engine,
+        'crash-middle',
+        '(series "crash-bottom")'
+    )
+    tsh.register_formula(
+        engine,
+        'crash-top',
+        '(priority (series "crash-base") '
+        '          (series "crash-middle"))'
+    )
+
+    df = gengroup(
+        n_scenarios=3,
+        from_date=dt(2022, 1, 1),
+        length=3,
+        freq='D',
+        seed=2
+    )
+    tsh.group_replace(engine, df, 'some-group', 'test')
+
+    binding = pd.DataFrame(
+        [
+            ['crash-base', 'some-group', 'crash'],
+        ],
+        columns=('series', 'group', 'family')
+    )
+
+    tsh.register_formula_bindings(
+        engine,
+        'crash-group',
+        'crash-top',
+        binding=binding,
+    )
+
+    with pytest.raises(RecursionError):
+        tsh.group_get(engine, 'crash-group')
