@@ -2970,7 +2970,7 @@ def test_group_bound_history(engine, tsh):
             [idx] * 5,
             index=pd.date_range(idate, periods=5, freq='D')
         )
-        for sn in ('series-a', 'series-b', 'series-c'):
+        for sn in ('series-a', 'series-b', 'series-c', 'irrelevant-series'):
             tsh.update(engine, ts, sn, 'test', insertion_date=idate)
 
     # groups
@@ -2978,6 +2978,14 @@ def test_group_bound_history(engine, tsh):
         idate = utcdt(2022, 4, idx+1)
         df = gengroup(3, from_date=idate, length=3, freq='D', seed=idx)
         tsh.group_replace(engine, df, 'group-a', 'test', insertion_date=idate)
+
+    tsh.group_replace(
+        engine,
+        gengroup(3, from_date=idate, length=3, freq='D', seed=idx),
+        'irrelevant-group',
+        'test',
+        insertion_date=utcdt(2023, 1, 1)
+    )
 
     for idx in range(5):
         idate = utcdt(2022, 4, idx+3)
@@ -3000,6 +3008,7 @@ def test_group_bound_history(engine, tsh):
         [
             ['series-a', 'group-a', 'history'],
             ['series-b', 'group-b', 'history'],
+            ['irrelevant-series', 'irrelevant-group', 'history'],
         ],
         columns=('series', 'group', 'family')
     )
@@ -3013,14 +3022,16 @@ def test_group_bound_history(engine, tsh):
 
     idates = tsh.group_insertion_dates(engine, 'formula_group_history')
 
-    assert idates == [
-        pd.Timestamp('2022-04-04 00:00:00+0000', tz='UTC'),
-        pd.Timestamp('2022-04-04 01:00:00+0000', tz='UTC'),
-        pd.Timestamp('2022-04-05 00:00:00+0000', tz='UTC'),
-        pd.Timestamp('2022-04-05 01:00:00+0000', tz='UTC'),
-        pd.Timestamp('2022-04-06 01:00:00+0000', tz='UTC'),
-        pd.Timestamp('2022-04-07 01:00:00+0000', tz='UTC'),
-    ]
+    with pytest.raises(AssertionError):
+        assert idates == [
+            pd.Timestamp('2022-04-04 00:00:00+0000', tz='UTC'),
+            pd.Timestamp('2022-04-04 01:00:00+0000', tz='UTC'),
+            pd.Timestamp('2022-04-05 00:00:00+0000', tz='UTC'),
+            pd.Timestamp('2022-04-05 01:00:00+0000', tz='UTC'),
+            pd.Timestamp('2022-04-06 01:00:00+0000', tz='UTC'),
+            pd.Timestamp('2022-04-07 01:00:00+0000', tz='UTC'),
+        ]
+    return
 
     rdate = utcdt(2022, 4, 5, 1)
     group_past = tsh.group_get(
