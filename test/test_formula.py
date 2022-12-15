@@ -2223,7 +2223,7 @@ def test_diagnose(engine, tsh):
     let's build some complex tree
 
     A-+-B-+-C(2 series)
-      |   +-D(2 autotrophs)
+      |   +-D(3 autotrophs)
       |
       + E-+-F---G(1 series)
           +-H(1 autotroph)
@@ -2247,9 +2247,8 @@ def test_diagnose(engine, tsh):
             periods=4
         )
     )
-    tsh.update(engine, ts, 'diag-C1', 'test')
-    tsh.update(engine, ts, 'diag-C2', 'test')
-    tsh.update(engine, ts, 'diag-G1', 'test')
+    tsh.update(engine, ts, 'prim-diag-1', 'test')
+    tsh.update(engine, ts, 'prim-diag-2', 'test')
 
     # autotrophics
     OperatorHistory.FUNCS = None
@@ -2282,22 +2281,22 @@ def test_diagnose(engine, tsh):
     def diag2(cn, tsh, tree):
         return {f'diag-2': tree}
 
-    formula = '(priority (series "diag-C1") (series "diag-C2"))'
+    formula = '(priority (series "prim-diag-1") (series "prim-diag-2"))'
     tsh.register_formula(engine, 'diag-C', formula)
 
-    formula = '(priority (diag-auto-1 "id-a") (diag-auto-2 "id-b"))'
+    formula = '(priority (diag-auto-1 "id-a") (diag-auto-2 "id-b") (diag-auto-1 "id-c"))'
     tsh.register_formula(engine, 'diag-D', formula)
 
     formula = '(add (series "diag-C") (series "diag-D"))'
     tsh.register_formula(engine, 'diag-B', formula)
 
-    formula = '(resample (series "diag-G1") "D")'
+    formula = '(resample (series "prim-diag-1") "D")'
     tsh.register_formula(engine, 'diag-G', formula)
 
     formula = '(* 3.14 (series "diag-G"))'
     tsh.register_formula(engine, 'diag-F', formula)
 
-    formula = '(diag-auto-1 "id-c")'
+    formula = '(diag-auto-1 "id-a")'
     tsh.register_formula(engine, 'diag-H', formula)
 
     formula = '(add (series "diag-F") (series "diag-H"))'
@@ -2313,24 +2312,32 @@ def test_diagnose(engine, tsh):
     )
 
     assert all_autos == {
-        'diag-auto-1': ['(diag-auto-1 "id-a")', '(diag-auto-1 "id-c")'],
-        'diag-auto-2': ['(diag-auto-2 "id-b")']
+        ('diag-auto-1', 3, 2): [
+            ('(diag-auto-1 "id-a")', 2),
+            ('(diag-auto-1 "id-c")', 1)
+        ],
+        ('diag-auto-2', 1, 1): [
+            ('(diag-auto-2 "id-b")', 1)
+        ]
     }
 
     nodes = scan_descendant_nodes(engine, tsh, 'diag-A')
 
     assert nodes == {
         'degree': 4,
-        'named-nodes': [
-            'diag-B',
-            'diag-C',
-            'diag-D',
-            'diag-E',
-            'diag-F',
-            'diag-G',
-            'diag-H'
+        ('named-nodes', 7, 7): [
+            ('diag-B', 1),
+            ('diag-C', 1),
+            ('diag-D', 1),
+            ('diag-E', 1),
+            ('diag-F', 1),
+            ('diag-G', 1),
+            ('diag-H', 1)
         ],
-        'primaries': ['diag-C1', 'diag-C2', 'diag-G1']
+        ('primaries', 3, 2):  [
+            ('prim-diag-1', 2),
+            ('prim-diag-2', 1)
+        ]
     }
 
     # Note: we define a new convention: i.e. the "degree" of a formula
@@ -2340,34 +2347,29 @@ def test_diagnose(engine, tsh):
 
     stats = tsh.formula_stats(engine, 'diag-A')
     assert stats == {
-        'autotrophics': {
-            'diag-auto-1': [
-                '(diag-auto-1 "id-a")',
-                '(diag-auto-1 "id-c")'
-            ],
-            'diag-auto-2': [
-                '(diag-auto-2 "id-b")'
-            ]
-        },
-        'cardinality': {
-            'autotrophics': 3,
-            'named-nodes': 7,
-            'primaries': 3
-        },
+        'autotrophics':
+            {
+                ('diag-auto-1', 3, 2): [
+                    ('(diag-auto-1 "id-a")', 2),
+                    ('(diag-auto-1 "id-c")', 1)
+                ],
+                ('diag-auto-2', 1, 1): [
+                    ('(diag-auto-2 "id-b")', 1)
+                ]
+            },
         'degree': 4,
-        'named-nodes': [
-            'diag-B',
-            'diag-C',
-            'diag-D',
-            'diag-E',
-            'diag-F',
-            'diag-G',
-            'diag-H'
+        ('named-nodes', 7, 7): [
+            ('diag-B', 1),
+            ('diag-C', 1),
+            ('diag-D', 1),
+            ('diag-E', 1),
+            ('diag-F', 1),
+            ('diag-G', 1),
+            ('diag-H', 1)
         ],
-        'primaries': [
-            'diag-C1',
-            'diag-C2',
-            'diag-G1'
+        ('primaries', 3, 2): [
+            ('prim-diag-1', 2),
+            ('prim-diag-2', 1)
         ]
     }
 

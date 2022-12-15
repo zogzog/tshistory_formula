@@ -133,12 +133,6 @@ class timeseries(basets):
         autos = helper.find_autos(cn, self, name)
         nodes = helper.scan_descendant_nodes(cn, self, name)
         nodes.update({'autotrophics': autos})
-        stats = {
-            'primaries' : len(nodes['primaries']),
-            'autotrophics': sum([len(v) for v in autos.values()]),
-            'named-nodes': len(nodes['named-nodes']),
-        }
-        nodes.update({'cardinality': stats})
         return nodes
 
     @tx

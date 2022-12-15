@@ -230,17 +230,27 @@ def update_dict_list(ds0, ds1):
     return ds0
 
 
-def sort_dict_list(ds):
-    return {k : sorted(ds[k]) for k in sorted(ds)}
+def enumlist(l):
+    return [(elt,l.count(elt)) for elt in sorted(set(l))]
+
+
+def sort_dict_list(dl):
+    return {k : enumlist(dl[k]) for k in sorted(dl)}
+
+
+def count_values(d):
+    return {(k, len(v), len(set(v))):v for k,v in d.items()}
 
 
 def find_autos(cn, tsh, name):
     return sort_dict_list(
-        _find_autos(
-            cn,
-            tsh,
-            parse(
-                tsh.expanded_formula(cn, name)
+        count_values(
+            _find_autos(
+                cn,
+                tsh,
+                parse(
+                    tsh.expanded_formula(cn, name)
+                )
             )
         )
     )
@@ -287,9 +297,11 @@ def scan_descendant_nodes(cn, tsh, name):
     tree = parse(tsh.formula(cn, name))
     explore_tree(cn, tsh, tree, depth=0)
     return {
-        'named-nodes' : sorted(named_nodes),
+        ('named-nodes', len(named_nodes), len(set(named_nodes))) :
+            enumlist(named_nodes),
         'degree': max(depths),
-        'primaries': sorted(primaries),
+        ('primaries', len(primaries), len(set(primaries))):
+            enumlist(primaries),
     }
 
 
