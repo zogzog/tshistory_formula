@@ -220,6 +220,35 @@ def fix_formula_groups_metadata(db_uri, namespace='tsh'):
             print(f'{name}: {err}')
 
 
+# migration
+@click.command(name='migrate-to-formula-groups')
+@click.argument('db-uri')
+@click.option('--namespace', default='tsh')
+def migrate_to_groups(db_uri, namespace='tsh'):
+    engine = create_engine(find_dburi(db_uri))
+
+    ns = namespace
+    sql = f"""
+    create table if not exists "{ns}".group_formula (
+      id serial primary key,
+      name text unique not null,
+      text text not null,
+      metadata jsonb
+    );
+
+    create table if not exists "{ns}".group_binding (
+      id serial primary key,
+      groupname text unique not null,
+      seriesname text not null,
+      binding jsonb not null,
+      metadata jsonb
+    );
+    """
+
+    with engine.begin() as cn:
+        cn.execute(sql)
+
+
 @click.command(name='migrate-to-content-hash')
 @click.argument('db-uri')
 @click.option('--namespace', default='tsh')
