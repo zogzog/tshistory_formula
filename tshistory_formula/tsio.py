@@ -1278,7 +1278,7 @@ class timeseries(basets):
                 {
                     idate
                     for idate in idates
-                    if idate > first_date_with_all_presents
+                    if idate >= first_date_with_all_presents
                  }
                 for idates in all_idates
             ]

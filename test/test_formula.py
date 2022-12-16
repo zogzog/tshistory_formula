@@ -3025,6 +3025,7 @@ def test_group_bound_history(engine, tsh):
     idates = tsh.group_insertion_dates(engine, 'formula_group_history')
 
     assert idates == [
+        pd.Timestamp('2022-04-03 01:00:00+0000', tz='UTC'),
         pd.Timestamp('2022-04-04 00:00:00+0000', tz='UTC'),
         pd.Timestamp('2022-04-04 01:00:00+0000', tz='UTC'),
         pd.Timestamp('2022-04-05 00:00:00+0000', tz='UTC'),
