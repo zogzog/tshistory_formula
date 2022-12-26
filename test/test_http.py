@@ -31,14 +31,25 @@ def test_series_formula(client):
         'text': '(+ 3'
     })
     assert res.status_code == 400
-    assert res.json['message'] == '`new-formula` has a syntax error in it'
+    assert res.json['message'] == "SyntaxError('unexpected EOF in list')"
 
     res = client.patch('/series/formula', params={
         'name': 'new-formula',
         'text': '(+ 3 (series "lol"))'
     })
     assert res.status_code == 409
-    assert res.json['message'] == 'Formula `new-formula` refers to unknown series `lol`'
+    assert res.json['message'] == (
+        "ValueError('Formula `new-formula` refers to unknown series `lol`')"
+    )
+
+    res = client.patch('/series/formula', params={
+        'name': 'new-formula',
+        'text': '(resample "foo")'
+    })
+    assert res.status_code == 409
+    assert res.json['message'] == (
+        'TypeError("\'foo\' not of <class \'pandas.core.series.Series\'>")'
+    )
 
     res = client.patch('/series/formula', params={
         'name': 'new-formula',

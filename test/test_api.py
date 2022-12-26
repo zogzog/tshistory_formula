@@ -88,6 +88,15 @@ def test_eval_formula(tsx):
     assert err.value.args[0] == "'1' not of <class 'numbers.Number'>"
 
 
+def test_bogus_formula(tsx):
+    with pytest.raises(TypeError) as err:
+        tsx.register_formula(
+            'bogus',
+            '(resample "nope")'
+        )
+    print(err)
+
+
 def test_local_formula_remote_series(tsa):
     rtsh = timeseries('test-mapi-2')
     rtsh.update(

@@ -170,13 +170,13 @@ class formula_httpapi(httpapi):
                         reject_unknown=args.reject_unknown
                     )
                 except TypeError as err:
-                    api.abort(409, err.args[0])
+                    api.abort(409, repr(err))
                 except ValueError as err:
-                    api.abort(409, err.args[0])
+                    api.abort(409, repr(err))
                 except AssertionError as err:
-                    api.abort(409, err.args[0])
-                except SyntaxError:
-                    api.abort(400, f'`{args.name}` has a syntax error in it')
+                    api.abort(409, repr(err))
+                except SyntaxError as err:
+                    api.abort(400, repr(err))
                 except Exception:
                     raise
 
@@ -343,10 +343,14 @@ class FormulaClient(Client):
             raise SyntaxError(res.json()['message'])
         elif res.status_code == 409:
             msg = res.json()['message']
-            if 'unknown' in msg:
-                raise ValueError(msg)
-            elif 'exists' in msg:
-                raise AssertionError(msg)
+            if msg.startswith('ValueError'):
+                raise ValueError(msg[10:])
+            elif msg.startswith('AssertionError'):
+                raise AssertionError(msg[15:])
+            elif msg.startswith('TypeError'):
+                raise TypeError(msg[10:])
+            else:
+                raise Exception(msg)
 
         if res.status_code in (200, 204):
             return
